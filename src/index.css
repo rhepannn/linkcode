@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-off-white text-navy font-sans;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply font-sans;
+    font-size: 1rem;
+  }
+
+  /* Bobot untuk aksen & heading display (Pixelify Sans punya banyak weight) */
+  .font-display {
+    font-weight: 700;
+  }
+  .font-pixel {
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  /* Tombol pixel: border tebal + hard shadow + efek "ketekan" */
+  .btn-pixel {
+    @apply inline-flex items-center justify-center gap-2 border-2 font-pixel uppercase tracking-wider transition-all duration-75;
+    font-size: 10px;
+  }
+  .btn-pixel:active {
+    transform: translate(3px, 3px);
+  }
+
+  /* Kotak pixel generik: border tebal + sudut tajam */
+  .pixel-box {
+    @apply border-2 border-navy;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Text shadow blocky ala pixel art */
+  .text-pixel-shadow {
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  /* Grid CRT tipis untuk background gelap */
+  .pixel-grid {
+    background-image:
+      linear-gradient(rgba(168, 200, 238, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168, 200, 238, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Garis scanline CRT */
+  .scanlines {
+    position: relative;
+  }
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.08) 0px,
+      rgba(0, 0, 0, 0.08) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+}
+
+/* ===== Footer: gelombang air pixel 2D beranimasi + bebek mengambang ===== */
+
+/* Air pixel kotak-kotak: scroll horizontal + naik-turun halus */
+.pixel-wave-strip {
+  image-rendering: pixelated;
+  animation:
+    pixel-wave-scroll 6s linear infinite,
+    water-bob 4s ease-in-out infinite;
+}
+
+@keyframes pixel-wave-scroll {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: var(--tile-w, 120px);
+  }
+}
+
+@keyframes water-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Bebek mengambang: naik-turun + goyang sedikit */
+@keyframes duck-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(4deg);
+  }
+}
+.animate-bob {
+  animation: duck-bob 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-wave-strip,
+  .animate-bob {
+    animation: none;
+  }
+}
+/* ===== Footer: gelombang air pixel 2D beranimasi + bebek mengambang ===== */
