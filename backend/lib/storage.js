@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 import path from 'node:path'
-import { createClient } from '@supabase/supabase-js'
+import { StorageClient } from '@supabase/storage-js'
 
 // Supabase Storage untuk media portofolio (bucket publik). Memakai service role key,
 // jadi HANYA boleh dipakai di backend — jangan pernah dikirim ke browser.
@@ -11,14 +11,18 @@ export const BUCKET = process.env.SUPABASE_BUCKET || 'showcases'
 export const storageConfigured = () =>
   Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
 
+// StorageClient dipakai langsung (bukan supabase-js penuh): supabase-js ikut memuat modul realtime yang
+// butuh WebSocket bawaan dan gagal dibuat di Node < 22.
 let client
 function sb() {
   if (!storageConfigured()) {
     throw new Error('Storage belum dikonfigurasi: isi SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di backend/.env.')
   }
-  client ??= createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  if (!client) {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const base = process.env.SUPABASE_URL.replace(/\/$/, '')
+    client = { storage: new StorageClient(`${base}/storage/v1`, { apikey: key, Authorization: `Bearer ${key}` }) }
+  }
   return client
 }
 
@@ -86,13 +90,57 @@ export async function ensureBucket() {
   return { created: true }
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Jalankan `fn` dengan percobaan ulang bertahap (jaringan lambat/putus sesaat).
+export async function withRetry(fn, { tries = 4, baseMs = 2000, label = 'operasi' } = {}) {
+  let lastErr
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (i < tries - 1) await sleep(baseMs * (i + 1))
+    }
+  }
+  throw new Error(`${label} gagal setelah ${tries} percobaan: ${lastErr?.message ?? lastErr}`)
+}
+
+export async function objectExists(objPath) {
+  try {
+    const { data } = await withRetry(
+      async () => {
+        const res = await sb().storage.from(BUCKET).exists(objPath)
+        if (res.error) throw new Error(res.error.message)
+        return res
+      },
+      { tries: 3, label: 'Cek objek' },
+    )
+    return data === true
+  } catch {
+    return false // tidak bisa memastikan → anggap belum ada, unggah (upsert aman karena nama berbasis hash)
+  }
+}
+
+// Unggah ke bucket. Nama objek berbasis hash, jadi bila objeknya sudah ada isinya pasti sama
+// dan unggahan dilewati (hemat bandwidth saat dijalankan ulang).
 export async function uploadBuffer(objPath, buffer, contentType) {
-  const { error } = await sb().storage.from(BUCKET).upload(objPath, buffer, {
-    contentType,
-    upsert: true,
-    cacheControl: '31536000', // nama berbasis hash → aman di-cache setahun
-  })
-  if (error) throw new Error(`Upload gagal: ${error.message}`)
+  const bucket = sb().storage.from(BUCKET)
+  // exists() mengembalikan { data: boolean, error } — BUKAN boolean. Hanya `data === true` yang berarti ada.
+  const exists = await objectExists(objPath)
+  if (!exists) {
+    await withRetry(
+      async () => {
+        const { error } = await bucket.upload(objPath, buffer, {
+          contentType,
+          upsert: true,
+          cacheControl: '31536000', // nama berbasis hash → aman di-cache setahun
+        })
+        if (error) throw new Error(error.message)
+      },
+      { tries: 4, label: 'Upload' },
+    )
+  }
   return publicUrlFor(objPath)
 }
 

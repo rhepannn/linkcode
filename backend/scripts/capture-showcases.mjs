@@ -38,8 +38,10 @@ const run = promisify(execFile)
 const args = process.argv.slice(2)
 const withVideo = !args.includes('--no-video')
 const useStorage = storageConfigured() && !args.includes('--local')
-const onlyArg = args.find((a) => a.startsWith('--only='))?.split('=')[1] ?? args[args.indexOf('--only') + 1]
-const only = args.includes('--only') || onlyArg ? new Set((onlyArg || '').split(',').filter(Boolean)) : null
+// --only slug1,slug2  atau  --only=slug1,slug2  (tanpa flag ini → semua karya)
+const onlyIdx = args.findIndex((a) => a === '--only' || a.startsWith('--only='))
+const onlyVal = onlyIdx === -1 ? null : args[onlyIdx].includes('=') ? args[onlyIdx].split('=')[1] : args[onlyIdx + 1]
+const only = onlyVal ? new Set(onlyVal.split(',').filter(Boolean)) : null
 
 const prisma = new PrismaClient()
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))

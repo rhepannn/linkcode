@@ -81,6 +81,9 @@ Gambar/video karya disimpan di bucket publik Supabase agar tersedia di semua lin
 3. **Admin → Portofolio → Edit**: tombol *Unggah* di tiap kolom media (JPG/PNG/WebP ≤ 8–12 MB, WebM/MP4 ≤ 25 MB).
    Berkas diperiksa isinya (bukan hanya ekstensi). Media yang diganti atau karya yang dihapus ikut dibersihkan dari bucket.
 4. Pindahkan media lokal yang sudah ada: `cd backend && npm run upload-media -- --dry-run`, lalu tanpa `--dry-run`.
+   Aman dijalankan ulang: berkas yang sudah ada dilewati, URL disimpan per berkas, dan unggahan diulang otomatis
+   bila jaringan putus. `npm run upload-media -- --repair` memeriksa tiap URL Storage di database dan mengunggah
+   ulang dari `public/showcases/` bila objeknya hilang.
 5. `npm run capture` otomatis mengunggah hasilnya bila Storage terkonfigurasi (`--local` untuk menyimpan lokal saja).
 
 ## Pemantauan project (admin)

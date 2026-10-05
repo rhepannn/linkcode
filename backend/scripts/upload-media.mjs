@@ -5,6 +5,7 @@
 //   npm run upload-media                # unggah + perbarui database
 //   npm run upload-media -- --dry-run   # hanya tampilkan rencana
 //   npm run upload-media -- --only rata-coffee,finatra
+//   npm run upload-media -- --repair    # periksa tiap URL Storage di database; unggah ulang yang objeknya hilang
 //
 // Aman dijalankan berulang: nama objek berbasis hash isi, jadi berkas yang sama tidak diunggah dua kali.
 import 'dotenv/config'
@@ -12,15 +13,18 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PrismaClient } from '@prisma/client'
-import { BUCKET, ensureBucket, storageConfigured, uploadFile } from '../lib/storage.js'
+import { BUCKET, ensureBucket, objectExists, pathFromUrl, storageConfigured, uploadFile, withRetry } from '../lib/storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const LOCAL_DIR = path.resolve(__dirname, '../../public/showcases')
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
-const onlyArg = args.find((a) => a.startsWith('--only='))?.split('=')[1] ?? args[args.indexOf('--only') + 1]
-const only = args.includes('--only') || onlyArg ? new Set((onlyArg || '').split(',').filter(Boolean)) : null
+const repair = args.includes('--repair')
+// --only slug1,slug2  atau  --only=slug1,slug2  (tanpa flag ini → semua karya)
+const onlyIdx = args.findIndex((a) => a === '--only' || a.startsWith('--only='))
+const onlyVal = onlyIdx === -1 ? null : args[onlyIdx].includes('=') ? args[onlyIdx].split('=')[1] : args[onlyIdx + 1]
+const only = onlyVal ? new Set(onlyVal.split(',').filter(Boolean)) : null
 
 // Kolom database → jenis media
 const FIELDS = [
@@ -38,20 +42,39 @@ async function main() {
     return
   }
 
-  let items = await prisma.showcase.findMany({ orderBy: { sortOrder: 'asc' } })
+  let items = await withRetry(() => prisma.showcase.findMany({ orderBy: { sortOrder: 'asc' } }), { label: 'Baca database' })
   if (only) items = items.filter((i) => only.has(i.slug))
 
   if (!dryRun) {
-    const { created } = await ensureBucket()
+    const { created } = await withRetry(() => ensureBucket(), { label: 'Siapkan bucket' })
     console.log(created ? `Bucket "${BUCKET}" dibuat (publik).` : `Bucket "${BUCKET}" sudah ada.`)
   }
 
   const report = []
   for (const item of items) {
-    const data = {}
     for (const [field, kind] of FIELDS) {
       const value = item[field]
-      if (!value || !value.startsWith('/showcases/')) continue // kosong / sudah URL luar atau Storage
+      if (!value) continue
+      if (repair) {
+        // Mode perbaikan: URL milik bucket kita yang objeknya tidak ada → unggah ulang dari berkas lokal.
+        if (!pathFromUrl(value) || (await objectExists(pathFromUrl(value)))) continue
+        const localName = field === 'thumbnailUrl' ? `${item.slug}-thumb.jpg` : field === 'previewUrl' ? `${item.slug}.jpg` : `${item.slug}.webm`
+        const row = { slug: item.slug, jenis: kind, berkas: localName, hasil: '' }
+        try {
+          if (dryRun) row.hasil = 'akan diunggah ulang'
+          else {
+            const url = await uploadFile(path.join(LOCAL_DIR, localName), item.slug, kind)
+            if (url !== value) await withRetry(() => prisma.showcase.update({ where: { id: item.id }, data: { [field]: url } }), { label: 'Simpan URL' })
+            row.hasil = (await objectExists(pathFromUrl(url))) ? 'ok' : 'GAGAL: objek tetap tidak ada setelah unggah'
+          }
+        } catch (err) {
+          row.hasil = err.code === 'ENOENT' ? 'GAGAL: berkas lokal tidak ada' : `GAGAL: ${err.message}`
+        }
+        console.log(`${row.hasil === 'ok' ? '✓' : row.hasil.startsWith('akan') ? '·' : '✗'} ${row.slug} / ${kind}${row.hasil === 'ok' || row.hasil.startsWith('akan') ? '' : ' → ' + row.hasil}`)
+        report.push(row)
+        continue
+      }
+      if (!value.startsWith('/showcases/')) continue // sudah URL luar atau Storage
       const file = path.join(LOCAL_DIR, path.basename(value))
       const row = { slug: item.slug, jenis: kind, berkas: path.basename(value), hasil: '' }
       try {
@@ -59,15 +82,18 @@ async function main() {
         if (dryRun) {
           row.hasil = `akan diunggah (${(stat.size / 1024).toFixed(0)} KB)`
         } else {
-          data[field] = await uploadFile(file, item.slug, kind)
+          const url = await uploadFile(file, item.slug, kind)
+          if (!(await objectExists(pathFromUrl(url)))) throw new Error('objek tidak ditemukan di bucket setelah diunggah')
+          // Simpan SEKARANG per berkas: progres tidak hilang jika proses terputus di tengah jalan.
+          await withRetry(() => prisma.showcase.update({ where: { id: item.id }, data: { [field]: url } }), { label: 'Simpan URL' })
           row.hasil = 'ok'
         }
       } catch (err) {
         row.hasil = err.code === 'ENOENT' ? 'GAGAL: berkas lokal tidak ada' : `GAGAL: ${err.message}`
       }
+      console.log(`${row.hasil === 'ok' ? '✓' : row.hasil.startsWith('akan') ? '·' : '✗'} ${row.slug} / ${kind}${row.hasil === 'ok' || row.hasil.startsWith('akan') ? '' : ' → ' + row.hasil}`)
       report.push(row)
     }
-    if (Object.keys(data).length) await prisma.showcase.update({ where: { id: item.id }, data })
   }
 
   if (!report.length) console.log('Tidak ada media lokal yang perlu dipindahkan.')
