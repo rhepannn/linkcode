@@ -55,6 +55,35 @@ export async function deleteProject(id) {
   return data
 }
 
+// ---- Pemantauan project (admin) ----
+export const getOverview = async () => (await client.get('/api/projects/overview')).data
+export const getProject = async (id) => (await client.get(`/api/projects/${id}`)).data
+export const setProjectTeam = async (id, team) => (await client.put(`/api/projects/${id}/team`, { team })).data
+
+export const createFeature = async (projectId, payload) =>
+  (await client.post(`/api/projects/${projectId}/features`, payload)).data
+export const updateFeature = async (id, payload) => (await client.put(`/api/features/${id}`, payload)).data
+export const deleteFeature = async (id) => (await client.delete(`/api/features/${id}`)).data
+
+export const createSubtask = async (featureId, title) =>
+  (await client.post(`/api/features/${featureId}/subtasks`, { title })).data
+export const updateSubtask = async (id, payload) => (await client.put(`/api/subtasks/${id}`, payload)).data
+export const deleteSubtask = async (id) => (await client.delete(`/api/subtasks/${id}`)).data
+
+export const createUpdate = async (projectId, note) =>
+  (await client.post(`/api/projects/${projectId}/updates`, { note })).data
+export const deleteUpdate = async (id) => (await client.delete(`/api/updates/${id}`)).data
+
+export const createBlocker = async (projectId, payload) =>
+  (await client.post(`/api/projects/${projectId}/blockers`, payload)).data
+export const updateBlocker = async (id, payload) => (await client.put(`/api/blockers/${id}`, payload)).data
+export const deleteBlocker = async (id) => (await client.delete(`/api/blockers/${id}`)).data
+
+export const getMembers = async () => (await client.get('/api/members')).data
+export const createMember = async (payload) => (await client.post('/api/members', payload)).data
+export const updateMember = async (id, payload) => (await client.put(`/api/members/${id}`, payload)).data
+export const deleteMember = async (id) => (await client.delete(`/api/members/${id}`)).data
+
 // ---- Showcases (portofolio) ----
 export async function getShowcases() {
   const { data } = await client.get('/api/showcases')

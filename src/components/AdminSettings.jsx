@@ -4,11 +4,8 @@ import { getSettings, updateSettings, changePassword } from '../api/client.js'
 function Field({ label, ...props }) {
   return (
     <div>
-      <label className="mb-1 block font-pixel text-[9px] uppercase text-navy">{label}</label>
-      <input
-        className="w-full border-2 border-light-blue bg-off-white px-3 py-2.5 text-sm outline-none focus:border-sky-blue"
-        {...props}
-      />
+      <label className="a-label">{label}</label>
+      <input className="a-input" {...props} />
     </div>
   )
 }
@@ -19,8 +16,9 @@ function Note({ note }) {
   const ok = note.type === 'ok'
   return (
     <p
-      className={`border-2 px-3 py-2 text-sm ${
-        ok ? 'border-green-300 bg-green-50 text-green-700' : 'border-red-300 bg-red-50 text-red-600'
+      role="status"
+      className={`rounded-md border px-3 py-2 text-sm ${
+        ok ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
       }`}
     >
       {note.msg}
@@ -56,11 +54,11 @@ function WhatsAppCard() {
   }
 
   return (
-    <form onSubmit={save} className="space-y-3 border-2 border-navy bg-white p-5 shadow">
-      <h3 className="font-pixel text-[11px] uppercase text-navy">📱 Nomor WhatsApp</h3>
-      <p className="text-sm text-navy/55">
+    <form onSubmit={save} className="a-card space-y-3 p-5">
+      <h3 className="text-base font-semibold text-neutral-900">Nomor WhatsApp</h3>
+      <p className="text-sm text-neutral-500">
         Dipakai untuk tombol “Chat di WhatsApp” di halaman publik. Format: kode negara tanpa “+”,
-        mis. <span className="text-navy">628123456789</span>.
+        mis. <span className="font-mono text-neutral-800">628123456789</span>.
       </p>
       <Field
         label="Nomor"
@@ -75,7 +73,7 @@ function WhatsAppCard() {
       <button
         type="submit"
         disabled={saving || loading}
-        className="btn-pixel border-navy bg-sky-blue px-5 py-3 text-white shadow hover:bg-sky-blue/90 active:shadow-none disabled:opacity-60"
+        className="a-btn-primary"
       >
         {saving ? 'Menyimpan…' : 'Simpan'}
       </button>
@@ -114,8 +112,8 @@ function PasswordCard() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 border-2 border-navy bg-white p-5 shadow">
-      <h3 className="font-pixel text-[11px] uppercase text-navy">🔒 Ganti Password</h3>
+    <form onSubmit={submit} className="a-card space-y-3 p-5">
+      <h3 className="text-base font-semibold text-neutral-900">Ganti password</h3>
       <Field
         label="Password lama"
         type="password"
@@ -144,7 +142,7 @@ function PasswordCard() {
       <button
         type="submit"
         disabled={saving}
-        className="btn-pixel border-navy bg-sky-blue px-5 py-3 text-white shadow hover:bg-sky-blue/90 active:shadow-none disabled:opacity-60"
+        className="a-btn-primary"
       >
         {saving ? 'Menyimpan…' : 'Ubah Password'}
       </button>
@@ -154,8 +152,9 @@ function PasswordCard() {
 
 export default function AdminSettings() {
   return (
-    <section className="mt-12">
-      <h2 className="mb-5 font-display text-xl leading-relaxed text-navy">Pengaturan</h2>
+    <section>
+      <h2 className="mb-1 text-xl font-semibold text-neutral-900">Pengaturan</h2>
+      <p className="mb-5 text-sm text-neutral-500">Konfigurasi situs dan akun admin.</p>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <WhatsAppCard />
         <PasswordCard />

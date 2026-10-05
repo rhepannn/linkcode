@@ -1,273 +1,286 @@
-import { useEffect, useState } from 'react'
-import Navbar from '../components/Navbar.jsx'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { LayoutDashboard, FolderKanban, Images, Users, Settings, LogOut, ExternalLink, Menu, X } from 'lucide-react'
 import LoginModal from '../components/LoginModal.jsx'
-import ProjectCard from '../components/ProjectCard.jsx'
-import ProjectForm from '../components/ProjectForm.jsx'
-import StatCard from '../components/StatCard.jsx'
 import AdminSettings from '../components/AdminSettings.jsx'
+import ConfirmDialog from '../components/admin/ConfirmDialog.jsx'
+import DashboardPanel from '../components/admin/DashboardPanel.jsx'
+import ProjectsPanel from '../components/admin/ProjectsPanel.jsx'
+import ProjectForm from '../components/admin/ProjectForm.jsx'
+import MembersPanel from '../components/admin/MembersPanel.jsx'
+import ShowcasesPanel from '../components/admin/ShowcasesPanel.jsx'
+import ProjectDetail from '../components/admin/tracking/ProjectDetail.jsx'
 import { useAuth } from '../hooks/useAuth.js'
-import {
-  getProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-} from '../api/client.js'
+import { createProject, deleteProject, getOverview, getProject, updateProject } from '../api/client.js'
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'projects', label: 'Projects', icon: '📁' },
-  { id: 'settings', label: 'Pengaturan', icon: '⚙️' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'members', label: 'Tim', icon: Users },
+  { id: 'showcases', label: 'Portofolio', icon: Images },
+  { id: 'settings', label: 'Pengaturan', icon: Settings },
 ]
 
-function Sidebar({ active, onChange, username, onLogout }) {
-  return (
-    <aside className="flex w-52 shrink-0 flex-col border-r-2 border-sky-blue/30 bg-navy">
-      <div className="border-b-2 border-sky-blue/20 px-4 py-5">
-        <p className="font-pixel text-[9px] uppercase tracking-widest text-light-blue/40">
-          logged in as
-        </p>
-        <p className="mt-1 font-pixel text-[11px] text-neon-green">
-          {username || 'admin'}
-          <span className="animate-blink">_</span>
-        </p>
-      </div>
+// Sidebar: kolom tetap di layar ≥ md; drawer geser dari kiri di layar kecil.
+function Sidebar({ active, onChange, username, onLogout, open, onClose }) {
+  const closeRef = useRef(null)
 
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
-        {NAV_ITEMS.map((item) => (
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden' // kunci scroll halaman di belakang drawer
+    closeRef.current?.focus() // saat membuka, visibility langsung 'visible' (lihat kelas aside)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [open, onClose])
+
+  return (
+    <>
+      {open && (
+        <div className="fixed inset-0 z-30 bg-neutral-900/40 lg:hidden" onClick={onClose} aria-hidden="true" />
+      )}
+      <aside
+        id="admin-sidebar"
+        aria-label="Menu admin"
+        // Buka: visibility langsung 'visible' (fokus bisa langsung masuk). Tutup: visibility baru
+        // 'hidden' setelah animasi geser selesai, supaya item menu tidak bisa difokus saat tersembunyi.
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-neutral-200 bg-white duration-200 lg:visible lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-56 lg:shrink-0 lg:self-start lg:translate-x-0 ${
+          open
+            ? 'visible translate-x-0 shadow-xl transition-transform'
+            : 'invisible -translate-x-full transition-[transform,visibility]'
+        }`}
+      >
+        <div className="flex items-start justify-between border-b border-neutral-200 px-5 py-4">
+          <div>
+            <p className="font-display text-2xl font-semibold">
+              Link<span className="italic text-olive">Code</span>
+            </p>
+            <p className="mt-0.5 text-xs text-neutral-500">Admin panel</p>
+          </div>
           <button
-            key={item.id}
+            ref={closeRef}
             type="button"
-            onClick={() => onChange(item.id)}
-            className={`flex w-full items-center gap-3 border-l-2 px-3 py-3 text-left font-pixel text-[10px] uppercase tracking-wider transition-all ${
-              active === item.id
-                ? 'border-sky-blue bg-sky-blue/15 text-sky-blue'
-                : 'border-transparent text-light-blue/50 hover:border-sky-blue/30 hover:bg-white/5 hover:text-light-blue'
-            }`}
+            onClick={onClose}
+            aria-label="Tutup menu"
+            className="-mr-2 rounded-md p-2 text-neutral-500 hover:bg-neutral-100 lg:hidden"
           >
-            <span className="text-base leading-none">{item.icon}</span>
-            {item.label}
+            <X size={20} />
           </button>
-        ))}
-      </nav>
-
-      <div className="border-t-2 border-sky-blue/20 p-3">
-        <button
-          type="button"
-          onClick={onLogout}
-          className="btn-pixel w-full border-sky-blue/50 px-3 py-2.5 text-light-blue/70 hover:border-sky-blue hover:text-sky-blue"
-        >
-          Logout
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-function SectionHeader({ title, sub, inline = false }) {
-  if (inline) {
-    return (
-      <div>
-        <h2 className="font-display text-xl leading-relaxed text-navy">{title}</h2>
-        {sub && (
-          <p className="font-pixel text-[10px] uppercase tracking-wide text-navy/50">{sub}</p>
-        )}
-      </div>
-    )
-  }
-  return (
-    <div className="mb-6">
-      <h2 className="font-display text-xl leading-relaxed text-navy">
-        <span className="text-sky-blue">{'>'}</span> {title}
-      </h2>
-      {sub && (
-        <p className="mt-0.5 font-pixel text-[10px] uppercase tracking-wide text-navy/50">{sub}</p>
-      )}
-    </div>
-  )
-}
-
-function DashboardPanel({ projects }) {
-  const total = projects.length
-  const active = projects.filter((p) => p.status === 'active').length
-  const done = projects.filter((p) => p.status === 'done').length
-  const avg =
-    total === 0
-      ? 0
-      : Math.round(projects.reduce((sum, p) => sum + (p.percentage || 0), 0) / total)
-
-  return (
-    <div>
-      <SectionHeader title="Dashboard" sub="Ringkasan project LinkCode" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total Project" value={total} icon="📁" accent="#1E5FA8" />
-        <StatCard label="Active" value={active} icon="🚀" accent="#FF4D9D" />
-        <StatCard label="Rata-rata Progress" value={`${avg}%`} icon="📈" accent="#16A34A" />
-        <StatCard label="Completed" value={done} icon="✅" accent="#0D2B4E" />
-      </div>
-    </div>
-  )
-}
-
-function ProjectsPanel({ projects, loading, error, onEdit, onDelete, onCreate }) {
-  return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <SectionHeader title="Projects" sub="Kelola semua project" inline />
-        <button
-          type="button"
-          onClick={onCreate}
-          className="btn-pixel border-navy bg-sky-blue px-5 py-3 text-white shadow hover:bg-sky-blue/90 active:shadow-none"
-        >
-          + Tambah
-        </button>
-      </div>
-
-      {error && (
-        <p className="mb-4 border-2 border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
-
-      {loading ? (
-        <p className="py-12 text-center text-navy/50">Memuat project…</p>
-      ) : projects.length === 0 ? (
-        <p className="py-12 text-center text-navy/50">
-          Belum ada project. Klik "+ Tambah" untuk mulai.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <ProjectCard
-              key={p.id}
-              project={p}
-              actions={
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(p)}
-                    className="btn-pixel flex-1 border-brand-blue px-3 py-2 text-brand-blue hover:bg-off-white"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(p)}
-                    className="btn-pixel flex-1 border-red-400 px-3 py-2 text-red-600 hover:bg-red-50"
-                  >
-                    Hapus
-                  </button>
-                </div>
-              }
-            />
-          ))}
         </div>
-      )}
-    </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onChange(id)}
+              aria-current={active === id ? 'page' : undefined}
+              className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm transition-colors lg:py-2 ${
+                active === id
+                  ? 'bg-olive/10 font-medium text-olive-dark'
+                  : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+              }`}
+            >
+              <Icon size={18} />
+              {label}
+            </button>
+          ))}
+          <Link
+            to="/"
+            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 lg:py-2"
+          >
+            <ExternalLink size={18} />
+            Lihat situs
+          </Link>
+        </nav>
+
+        <div className="border-t border-neutral-200 p-3">
+          <p className="truncate px-3 pb-2 text-xs text-neutral-500">
+            Masuk sebagai <span className="font-medium text-neutral-800">{username || 'admin'}</span>
+          </p>
+          <button type="button" onClick={onLogout} className="a-btn-secondary w-full">
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }
 
 export default function AdminPage() {
   const { isAdmin, username, signIn, logout } = useAuth()
   const [page, setPage] = useState('dashboard')
+  const [openProjectId, setOpenProjectId] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
+  const [detailKey, setDetailKey] = useState(0) // naik → detail memuat ulang (setelah info dasar diedit)
 
-  const [projects, setProjects] = useState([])
+  const [overview, setOverview] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [formOpen, setFormOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
+  // form: null | { project?: object }   (project = mode edit)
+  const [form, setForm] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const loadProjects = () => {
-    setLoading(true)
+  // Muat ringkasan; `silent` = tanpa menampilkan status loading (pembaruan latar belakang).
+  const loadOverview = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     setError('')
-    getProjects()
-      .then((data) => setProjects(Array.isArray(data) ? data : []))
+    return getOverview()
+      .then((data) => setOverview(Array.isArray(data) ? data : []))
       .catch(() => setError('Gagal memuat project dari server.'))
       .finally(() => setLoading(false))
-  }
+  }, [])
+  const refreshQuietly = useCallback(() => loadOverview(true), [loadOverview])
 
   useEffect(() => {
-    if (isAdmin) loadProjects()
-  }, [isAdmin])
+    if (isAdmin) loadOverview()
+  }, [isAdmin, loadOverview])
 
-  const openCreate = () => { setEditing(null); setFormOpen(true) }
-  const openEdit = (p) => { setEditing(p); setFormOpen(true) }
+  const go = (id) => {
+    setPage(id)
+    setOpenProjectId(null)
+    setMenuOpen(false)
+    window.scrollTo({ top: 0 })
+  }
+  const openProject = (id) => {
+    setOpenProjectId(id)
+    if (page !== 'dashboard' && page !== 'projects') setPage('projects')
+  }
+
+  const openEdit = async (idOrProject) => {
+    try {
+      const project = typeof idOrProject === 'object' ? idOrProject : await getProject(idOrProject)
+      setForm({ project })
+    } catch {
+      setError('Gagal memuat data project.')
+    }
+  }
 
   const handleSave = async (payload) => {
-    if (editing) await updateProject(editing.id, payload)
-    else await createProject(payload)
-    setFormOpen(false)
-    setEditing(null)
-    loadProjects()
+    if (form?.project) {
+      await updateProject(form.project.id, payload)
+      setForm(null)
+      setDetailKey((k) => k + 1)
+      await loadOverview(true)
+    } else {
+      const created = await createProject(payload)
+      setForm(null)
+      await loadOverview(true)
+      setPage('projects')
+      setOpenProjectId(created.id) // langsung ke detail untuk mengisi fitur & tim
+    }
   }
 
   const handleDelete = async () => {
-    if (!deleting) return
-    await deleteProject(deleting.id)
-    setDeleting(null)
-    loadProjects()
+    setBusy(true)
+    setDeleteError('')
+    try {
+      await deleteProject(deleting.id)
+      if (openProjectId === deleting.id) setOpenProjectId(null)
+      setDeleting(null)
+      await loadOverview(true)
+    } catch (err) {
+      setDeleteError(err?.response?.data?.message || 'Gagal menghapus project.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   if (!isAdmin) return <LoginModal onSubmit={signIn} />
 
+  const showingDetail = openProjectId !== null && (page === 'dashboard' || page === 'projects')
+
+  const pageTitle = NAV_ITEMS.find((n) => n.id === page)?.label
+
   return (
-    <div className="flex min-h-screen flex-col bg-off-white">
-      <Navbar admin username={username} onLogout={logout} />
+    <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
+      <Sidebar
+        active={page}
+        onChange={go}
+        username={username}
+        onLogout={logout}
+        open={menuOpen}
+        onClose={closeMenu}
+      />
 
-      <div className="flex flex-1">
-        <Sidebar active={page} onChange={setPage} username={username} onLogout={logout} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top bar: hanya di layar kecil */}
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-neutral-200 bg-white/95 px-3 py-2 backdrop-blur lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Buka menu"
+            aria-expanded={menuOpen}
+            aria-controls="admin-sidebar"
+            className="rounded-md p-2.5 text-neutral-700 hover:bg-neutral-100"
+          >
+            <Menu size={22} />
+          </button>
+          <p className="font-display text-xl font-semibold">
+            Link<span className="italic text-olive">Code</span>
+          </p>
+          <span className="ml-auto truncate text-sm text-neutral-500">{pageTitle}</span>
+        </header>
 
-        <main className="flex-1 overflow-auto px-6 py-8 sm:px-8">
-          {page === 'dashboard' && <DashboardPanel projects={projects} />}
-          {page === 'projects' && (
-            <ProjectsPanel
-              projects={projects}
-              loading={loading}
-              error={error}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-              onCreate={openCreate}
-            />
-          )}
-          {page === 'settings' && <AdminSettings />}
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 md:px-10 md:py-8">
+          <div className="mx-auto max-w-6xl">
+            {showingDetail ? (
+              <ProjectDetail
+                projectId={openProjectId}
+                refreshKey={detailKey}
+                onBack={() => setOpenProjectId(null)}
+                onEdit={openEdit}
+                onChanged={refreshQuietly}
+              />
+            ) : (
+              <>
+                {page === 'dashboard' && (
+                  <DashboardPanel overview={overview} loading={loading} error={error} onOpenProject={openProject} />
+                )}
+                {page === 'projects' && (
+                  <ProjectsPanel
+                    overview={overview}
+                    loading={loading}
+                    error={error}
+                    onOpen={openProject}
+                    onEdit={openEdit}
+                    onDelete={(p) => {
+                      setDeleteError('')
+                      setDeleting(p)
+                    }}
+                    onCreate={() => setForm({})}
+                  />
+                )}
+                {page === 'members' && <MembersPanel onChanged={refreshQuietly} />}
+                {page === 'showcases' && <ShowcasesPanel />}
+                {page === 'settings' && <AdminSettings />}
+              </>
+            )}
+          </div>
         </main>
       </div>
 
-      {formOpen && (
-        <ProjectForm
-          initial={editing}
-          onSubmit={handleSave}
-          onClose={() => { setFormOpen(false); setEditing(null) }}
-        />
-      )}
+      {form && <ProjectForm initial={form.project} onSubmit={handleSave} onClose={() => setForm(null)} />}
 
       {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 px-4">
-          <div className="w-full max-w-sm border-2 border-navy bg-white p-6 shadow-lg">
-            <h3 className="font-pixel text-sm text-navy">Hapus Project?</h3>
-            <p className="mt-3 text-lg leading-snug text-navy/70">
-              Project <span className="text-navy">{deleting.name}</span> akan dihapus permanen
-              beserta data PIC-nya. Tindakan ini tidak bisa dibatalkan.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleting(null)}
-                className="btn-pixel border-navy px-4 py-3 text-navy hover:bg-off-white"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="btn-pixel border-red-700 bg-red-600 px-5 py-3 text-white shadow-[4px_4px_0_0_#7f1d1d] hover:bg-red-700 active:shadow-none"
-              >
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Hapus project?"
+          busy={busy}
+          error={deleteError}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleting(null)}
+        >
+          Project <span className="font-medium text-neutral-900">{deleting.name}</span> akan dihapus permanen beserta
+          fitur, tim, catatan, dan kendalanya. Tindakan ini tidak bisa dibatalkan.
+        </ConfirmDialog>
       )}
     </div>
   )

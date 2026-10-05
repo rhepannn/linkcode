@@ -1,23 +1,12 @@
 // Kartu statistik ringkas untuk dashboard admin.
-export default function StatCard({ label, value, icon, accent = '#4A90D9' }) {
+export default function StatCard({ label, value, icon: Icon }) {
   return (
-    <div className="border-2 border-navy bg-white p-5 shadow">
-      <div className="flex items-center justify-between">
-        <p className="font-pixel text-[9px] uppercase leading-relaxed tracking-wide text-navy/60">
-          {label}
-        </p>
-        {icon && (
-          <span
-            className="flex h-9 w-9 items-center justify-center border-2 text-lg"
-            style={{ backgroundColor: `${accent}1A`, borderColor: accent }}
-          >
-            {icon}
-          </span>
-        )}
+    <div className="a-card p-4 md:p-5">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs leading-snug text-neutral-500 md:text-sm">{label}</p>
+        {Icon && <Icon size={18} className="shrink-0 text-neutral-400" />}
       </div>
-      <p className="mt-3 font-pixel text-2xl text-navy" style={{ color: accent }}>
-        {value}
-      </p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-neutral-900 md:mt-3 md:text-3xl">{value}</p>
     </div>
   )
 }
