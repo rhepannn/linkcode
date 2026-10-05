@@ -45,6 +45,35 @@ model Setting {
   value String
 }
 
+// Karya portofolio: website/aplikasi buatan tim LinkCode.
+model Showcase {
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique
+  title        String
+  url          String // URL website asli
+  sector       Sector
+  description  String
+  year         Int?
+  techStack    String[] @default([])
+  thumbnailUrl String? // gambar kartu (viewport pertama)
+  previewUrl   String? // screenshot halaman penuh (untuk hover-scroll)
+  videoUrl     String? // rekaman scroll (cadangan jika tidak bisa di-iframe)
+  featured     Boolean  @default(false)
+  embeddable   Boolean  @default(false) // true jika situs mengizinkan di-iframe
+  published    Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum Sector {
+  industri
+  lingkungan
+  pemerintahan
+  platform
+  bisnis
+}
+
 enum Status {
   active
   review

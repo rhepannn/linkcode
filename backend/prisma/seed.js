@@ -69,6 +69,52 @@ const PROJECTS = [
   },
 ]
 
+// Karya portofolio. Urutan array = urutan tampil (sortOrder).
+// `embeddable` = hasil cek header X-Frame-Options / frame-ancestors (2026-10-04).
+const SHOWCASES = [
+  { slug: 'rata-coffee', title: 'Rata Coffee', url: 'https://ratacoffee.linkproductive.com', sector: 'bisnis', featured: true, embeddable: false,
+    description: 'Website brand kedai kopi: sederhana, nikmat, setiap hari.' },
+  { slug: 'link-productive-ecosystem', title: 'Link Productive Ecosystem', url: 'https://ecosystem.linkproductive.com', sector: 'platform', featured: true, embeddable: false,
+    description: 'Platform ekosistem digital terpadu Indonesia.' },
+  { slug: 'mangrove-link', title: 'Mangrove Link', url: 'https://mangrove-link.vercel.app', sector: 'lingkungan', featured: true, embeddable: false,
+    description: 'Transparansi restorasi mangrove dari akar: lokasi, spesies, dan kondisi lapangan tercatat sejak hari tanam pertama, bahkan tanpa sinyal.' },
+  { slug: 'kkmp-cilegon', title: 'KKMP Cilegon', url: 'https://kkmp.linkproductive.com', sector: 'pemerintahan', featured: true, embeddable: false,
+    description: 'Platform digital Koperasi Kelurahan Merah Putih Kota Cilegon: simpan pinjam, katalog UMKM, sembako, dan pengelolaan keuangan koperasi.' },
+  { slug: 'blue-forests-mis', title: 'Blue Forests MIS', url: 'https://blue-forest-eta.vercel.app', sector: 'lingkungan', featured: true, embeddable: false,
+    description: 'Sistem informasi terintegrasi untuk pengelolaan program, KMEL, lanskap, bukti, dan pengetahuan.' },
+
+  { slug: 'ahm-smart-factory', title: 'AHM Smart Factory Platform', url: 'https://ahm.linkproductive.com', sector: 'industri', embeddable: true,
+    description: 'Production intelligence platform untuk memantau operasional pabrik.' },
+  { slug: 'pama-smart-mining', title: 'PAMA Smart Mining', url: 'https://pama.linkproductive.com', sector: 'industri', embeddable: false,
+    description: 'Remote operation center dan monitoring CCTV berbasis AI untuk operasi pertambangan.' },
+  { slug: 'kpp-smart-hauling', title: 'KPP Smart Hauling', url: 'https://kpp.linkproductive.com', sector: 'industri', embeddable: true,
+    description: 'Command center monitoring hauling dan manajemen ban terpadu.' },
+  { slug: 'ud-smart-fleet', title: 'UD Smart Fleet', url: 'https://ud.linkproductive.com', sector: 'industri', embeddable: true,
+    description: 'Platform pemantauan armada kendaraan.' },
+  { slug: 'pratama-galuh-perkasa', title: 'Pratama Galuh Perkasa', url: 'https://hrd.linkproductive.com', sector: 'industri', embeddable: false,
+    description: 'Website perusahaan logistik: angkutan darat, pengiriman laut, dan solusi logistik kustom.' },
+
+  { slug: 'rbp-redd-gcf-sumbar', title: 'RBP REDD+ GCF Sumatera Barat', url: 'https://gcf-phi.vercel.app', sector: 'lingkungan', embeddable: true,
+    description: 'Pusat database, monitoring, pengetahuan, dan publikasi Program RBP REDD+ GCF Output 2 Provinsi Sumatera Barat.' },
+
+  { slug: 'tani-merdeka', title: 'Tani Merdeka', url: 'https://tani-merdeka-gamma.vercel.app', sector: 'pemerintahan', embeddable: false,
+    description: 'Platform terpadu untuk data, program bantuan, akses pasar, dan pengetahuan pertanian Indonesia.' },
+  { slug: 'tppkk-pulomerak', title: 'TP PKK Kecamatan Pulomerak', url: 'https://tppkkkecamatanpulomerakk.page.gd', sector: 'pemerintahan', embeddable: false,
+    description: 'Website TP PKK Kecamatan Pulomerak.' },
+
+  { slug: 'finatra', title: 'FINATRA', url: 'https://finatra.linkproductive.com', sector: 'platform', embeddable: true,
+    description: 'Ekosistem pertumbuhan UMKM: platform pembiayaan dan pengelolaan UMKM.' },
+  { slug: 'lp-iss', title: 'LP-ISS Industri Class', url: 'https://industriclass.linkproductive.com', sector: 'platform', embeddable: true,
+    description: 'Talent dan industry readiness platform: sistem seleksi kelas industri.' },
+  { slug: 'linkpromedia', title: 'LinkProMedia.id', url: 'https://media.linkproductive.com', sector: 'platform', embeddable: false,
+    description: 'Portal berita nasional, ekonomi, teknologi, olahraga, dan hiburan.' },
+
+  { slug: 'soto-betawi', title: 'Soto Betawi', url: 'https://sotobetawi.vercel.app', sector: 'bisnis', embeddable: false,
+    description: 'Website kuliner Soto Betawi.' },
+  { slug: 'bpjs-compliance-guard', title: 'BPJS Compliance Guard', url: 'https://bpjs-iota.vercel.app', sector: 'bisnis', embeddable: true,
+    description: 'Sistem monitoring dan deteksi risiko kepatuhan BPJS Kesehatan bagi pemberi kerja.' },
+]
+
 async function main() {
   // --- Admin ---
   const username = process.env.SEED_ADMIN_USERNAME || 'admin'
@@ -94,6 +140,16 @@ async function main() {
   } else {
     console.log('ℹ️  Project sudah ada, lewati seeding project.')
   }
+
+  // --- Showcase (buat jika slug belum ada; edit dari admin tidak ditimpa) ---
+  for (const [i, sc] of SHOWCASES.entries()) {
+    await prisma.showcase.upsert({
+      where: { slug: sc.slug },
+      update: {},
+      create: { ...sc, sortOrder: i },
+    })
+  }
+  console.log(`✅ ${SHOWCASES.length} karya portofolio siap.`)
 
   // --- Setting default (nomor WhatsApp) ---
   const waNumber = process.env.SEED_WHATSAPP_NUMBER || '628123456789'

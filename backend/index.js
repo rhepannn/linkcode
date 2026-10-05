@@ -4,6 +4,7 @@ import cors from 'cors'
 import authRoutes from './routes/auth.js'
 import projectRoutes from './routes/projects.js'
 import settingsRoutes from './routes/settings.js'
+import showcaseRoutes from './routes/showcases.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -23,6 +24,7 @@ app.get('/', (_req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/settings', settingsRoutes)
+app.use('/api/showcases', showcaseRoutes)
 
 // 404 fallback
 app.use((_req, res) => {
