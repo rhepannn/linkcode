@@ -1,90 +1,106 @@
 # LinkCode
 
-Portfolio publik untuk software development studio. Dua halaman: **Public** (`/`) untuk calon klien dan **Admin** (`/admin`) untuk tim internal.
+Situs software development studio: halaman publik berisi **portofolio karya** dan **progress project yang
+sedang berjalan**, plus panel **admin** untuk mengelola semuanya (termasuk dashboard pemantauan project).
 
-## Tech Stack
+## Tech stack
 
-- **Frontend:** React + Vite, Tailwind CSS, React Router v6, Zustand, Recharts, Axios
-- **Backend:** Node.js + Express, PostgreSQL, Prisma, JWT, bcrypt
+- **Next.js 16** (App Router, JavaScript) + **React 19** + **Tailwind CSS 3.4**
+- **Prisma 5** + PostgreSQL di **Supabase**; media di **Supabase Storage**
+- Auth admin: JWT (jose) di cookie `httpOnly`; password di-hash dengan bcryptjs
+- Hosting yang ditargetkan: **Vercel** (satu proyek untuk UI dan API)
 
-JWT disimpan di **memory (Zustand)** — bukan localStorage/cookie. Token kedaluwarsa 8 jam.
+Halaman publik dirender di server (Server Components + ISR) agar konten, metadata, dan data terstruktur
+terbaca mesin pencari dan pratinjau tautan tanpa menjalankan JavaScript.
 
 ## Struktur
 
 ```
-linkcode/
-├── src/            # Frontend (Vite)
-│   ├── components/  pages/  store/  hooks/  api/  utils/  data/
-├── backend/        # Express API + Prisma
-│   ├── routes/  middleware/  prisma/  index.js
-└── package.json
+src/
+├── app/                     # rute (App Router)
+│   ├── page.jsx             # beranda (SSR + ISR)
+│   ├── karya/[slug]/        # halaman detail tiap karya (SEO)
+│   ├── admin/               # panel admin (noindex)
+│   ├── api/                 # Route Handlers (REST): auth, project, tim, fitur, karya, unggah, dll.
+│   ├── sitemap.js robots.js opengraph-image.jsx icon.svg
+│   └── layout.jsx           # font (next/font), metadata dasar
+├── components/              # UI: home/, portfolio/, admin/ (+ admin/tracking/)
+├── lib/                     # prisma, auth (sesi), rate-limit, storage, parsers, tracking, queries
+└── utils/ api/              # util tampilan; klien API untuk panel admin
+prisma/                      # schema, migrasi, seed
+scripts/                     # capture-showcases, upload-media, api-test
 ```
 
-## Menjalankan Frontend
+## Menjalankan
 
 ```bash
-npm install
-cp .env.example .env        # sesuaikan VITE_WHATSAPP_NUMBER
-npm run dev                 # http://localhost:5173
+npm install                  # juga menjalankan `prisma generate`
+cp .env.example .env.local   # isi DATABASE_URL, DIRECT_URL, JWT_SECRET, SUPABASE_*, dll.
+npm run db:deploy            # terapkan migrasi ke database
+npm run db:seed              # admin awal + data contoh (idempoten)
+npm run dev                  # http://localhost:3000
 ```
 
-Halaman publik **bisa jalan tanpa backend** — otomatis fallback ke data mock di `src/data/projects.js` jika API tidak tersedia.
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` / `build` / `start` | pengembangan / build produksi / jalankan hasil build |
+| `npm run db:deploy` / `db:migrate` / `db:seed` | migrasi produksi / migrasi dev / seed |
+| `npm run test:api` | uji API end-to-end (±136 pemeriksaan) terhadap server yang berjalan |
+| `npm run capture` | ambil screenshot & video tiap karya (Playwright), unggah ke Storage |
+| `npm run upload-media` | pindahkan media lokal ke Storage (`--dry-run`, `--repair`) |
 
-## Menjalankan Backend
+Admin awal: username dari `SEED_ADMIN_USERNAME`, password dari `SEED_ADMIN_PASSWORD`. Ganti lewat
+**Admin → Pengaturan → Ganti password**.
 
-Database: **Supabase (PostgreSQL)**. Buat project di supabase.com, lalu ambil connection string dari
-*Dashboard → Connect → ORMs → Prisma*.
+## Deploy ke Vercel
 
-```bash
-cd backend
-npm install
-cp .env.example .env        # isi DATABASE_URL (pooler :6543), DIRECT_URL (:5432), JWT_SECRET
-npm run prisma:deploy       # terapkan semua migrasi (buat tabel + aktifkan RLS)
-npm run seed                # buat admin, project contoh + data pemantauan contoh
-npm run dev                 # http://localhost:3000
-```
+1. Impor repo ke Vercel (framework Next.js terdeteksi; `vercel.json` menetapkan region **hnd1/Tokyo**,
+   dekat database Supabase — ubah bila database Anda di region lain).
+2. Isi Environment Variables (lihat `.env.example`). Poin penting:
+   - `DATABASE_URL` → **transaction pooler `:6543`** dengan `?pgbouncer=true&connection_limit=1`
+     (serverless membuka banyak instance singkat; session pooler `:5432` cepat habis kuotanya).
+   - `DIRECT_URL` → koneksi `:5432` (hanya untuk migrasi).
+   - `JWT_SECRET` (≥ 32 karakter, **baru**, jangan salin dari lokal), `SUPABASE_URL`,
+     `SUPABASE_SERVICE_ROLE_KEY` (rahasia, hanya server), `NEXT_PUBLIC_SITE_URL` (domain produksi).
+3. Terapkan migrasi sekali dari mesin Anda ke database produksi: `npm run db:deploy`
+   (jangan memakai `db:migrate` di produksi). Lalu `npm run db:seed` untuk admin awal.
+4. Deploy. Setelah itu cek: `/sitemap.xml`, `/robots.txt`, dan login admin.
 
-- `DATABASE_URL` = **session pooler (:5432)** untuk runtime server Express (±5× lebih cepat per query daripada
-  transaction pooler :6543). Pakai :6543 + `?pgbouncer=true` hanya jika di-deploy serverless.
-- `DIRECT_URL` = koneksi langsung/session pooler, dipakai Prisma untuk migrasi.
-- Migrasi `enable_rls` mengunci tabel dari REST API publik Supabase (anon key); backend tetap
-  bisa akses karena Prisma memakai role `postgres`.
-- Membuat migrasi baru saat development: `npm run prisma:migrate -- --name nama_perubahan`.
+> **Satu database untuk dev dan produksi berarti uji coba lokal mengubah data produksi.**
+> Disarankan project Supabase terpisah untuk produksi.
 
-Kredensial admin default dari seed: **`admin` / `admin123`** (ubah via `SEED_ADMIN_*` di `.env`).
+## SEO
 
-## API Endpoints
+- Metadata per halaman (`generateMetadata`), canonical, Open Graph + Twitter card, gambar OG bawaan.
+- JSON-LD: `Organization`, `WebSite`, `ItemList` (beranda); `CreativeWork` + `BreadcrumbList` (tiap karya).
+- Setiap karya punya halaman sendiri `/karya/[slug]` yang dirender statis (ISR) dan masuk `sitemap.xml`.
+- `/admin` dan `/api` tidak diindeks (`robots.txt`, header `X-Robots-Tag`, meta `noindex`).
+- Perubahan di admin langsung menyegarkan halaman publik (`revalidatePath`), tanpa build ulang.
+- Isi `NEXT_PUBLIC_SITE_URL` dengan domain produksi agar canonical/sitemap benar.
 
-| Method | Endpoint              | Auth | Keterangan              |
-| ------ | --------------------- | ---- | ----------------------- |
-| POST   | `/api/auth/login`     | —    | Login → `{ token }` (rate limit 5/menit) |
-| GET    | `/api/projects`       | —    | Semua project + PICs    |
-| POST   | `/api/projects`       | ✅   | Buat project            |
-| PUT    | `/api/projects/:id`   | ✅   | Edit project            |
-| DELETE | `/api/projects/:id`   | ✅   | Hapus project           |
-| POST   | `/api/auth/change-password` | ✅ | Ganti password admin |
-| GET    | `/api/settings`       | —    | Pengaturan publik (nomor WhatsApp) |
-| PUT    | `/api/settings`       | ✅   | Ubah pengaturan         |
-| GET    | `/api/showcases`      | —    | Karya portofolio yang `published` |
-| GET    | `/api/showcases/all`  | ✅   | Semua karya, termasuk yang disembunyikan |
-| POST   | `/api/showcases`      | ✅   | Tambah karya            |
-| PUT    | `/api/showcases/:id`  | ✅   | Ubah karya (replace penuh) |
-| DELETE | `/api/showcases/:id`  | ✅   | Hapus karya             |
+## Keamanan
+
+- Sesi: cookie `httpOnly`, `SameSite=Strict`, `Secure` di produksi; token tidak pernah ada di JavaScript.
+- Permintaan berbasis cookie yang mengubah data wajib header `Origin` yang sama (proteksi CSRF).
+- Login dibatasi **5 percobaan/menit per IP** (tabel `LoginAttempt`, bekerja lintas instance serverless);
+  waktu respons konstan agar username tidak bisa ditebak.
+- Tabel Supabase memakai Row Level Security tanpa kebijakan: tidak terbaca lewat REST publik (anon key).
+- Unggahan media diperiksa isinya (magic bytes) dan ukurannya; berkas tidak sesuai dihapus otomatis.
+- `SUPABASE_SERVICE_ROLE_KEY` hanya dipakai di server.
 
 ## Media portofolio (Supabase Storage)
 
-Gambar/video karya disimpan di bucket publik Supabase agar tersedia di semua lingkungan, bukan di git.
+Gambar/video karya disimpan di bucket publik, bukan di git. Browser mengunggah **langsung** ke Supabase
+lewat signed URL (tidak melewati fungsi serverless, jadi tidak terkena batas body ±4,5 MB), lalu server
+memverifikasi.
 
-1. Dashboard Supabase → *Project Settings → API* → salin **service_role key** (rahasia).
-2. Isi `backend/.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (lihat `.env.example`), lalu restart backend.
-   Kunci ini hanya dipakai backend; jangan masukkan ke frontend atau commit.
-3. **Admin → Portofolio → Edit**: tombol *Unggah* di tiap kolom media (JPG/PNG/WebP ≤ 8–12 MB, WebM/MP4 ≤ 25 MB).
-   Berkas diperiksa isinya (bukan hanya ekstensi). Media yang diganti atau karya yang dihapus ikut dibersihkan dari bucket.
-4. Pindahkan media lokal yang sudah ada: `cd backend && npm run upload-media -- --dry-run`, lalu tanpa `--dry-run`.
-   Aman dijalankan ulang: berkas yang sudah ada dilewati, URL disimpan per berkas, dan unggahan diulang otomatis
-   bila jaringan putus. `npm run upload-media -- --repair` memeriksa tiap URL Storage di database dan mengunggah
-   ulang dari `public/showcases/` bila objeknya hilang.
-5. `npm run capture` otomatis mengunggah hasilnya bila Storage terkonfigurasi (`--local` untuk menyimpan lokal saja).
+1. Isi `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Project Settings → API).
+2. **Admin → Portofolio → Edit**: tombol *Unggah* di tiap kolom media (JPG/PNG/WebP ≤ 8–12 MB, WebM/MP4 ≤ 25 MB).
+   Media yang diganti atau karya yang dihapus ikut dibersihkan dari bucket.
+3. `npm run capture` (butuh `npx playwright install chromium` sekali) membuat screenshot + video semua karya
+   dan mengunggahnya (`--local` untuk menyimpan ke `public/showcases/` saja; folder itu tidak ikut git).
+4. `npm run upload-media -- --repair` memeriksa tiap URL Storage di database dan mengunggah ulang dari
+   `public/showcases/` bila objeknya hilang.
 
 ## Pemantauan project (admin)
 
@@ -94,50 +110,41 @@ Gambar/video karya disimpan di bucket publik Supabase agar tersedia di semua lin
 - **Fitur** — papan 3 kolom (Sedang dikerjakan / Berikutnya / Selesai), tiap fitur punya sub-tugas,
   penanggung jawab, dan tenggat. **Persen progres project dihitung otomatis**: rata-rata progres fitur
   (fitur selesai = 100%, selain itu sub-tugas selesai ÷ total). Project tanpa fitur memakai persen manual.
-  Status fitur mengikuti sub-tugas (semua selesai → Selesai; ada yang dicentang → Sedang dikerjakan).
 - **Tim** — anggota global (menu **Tim**) ditugaskan ke project. **PIC utama dipilih manual**, tidak ditentukan
   oleh besar kontribusi.
-- **Catatan** — linimasa perkembangan berkala.
-- **Kendala** — risiko/blocker dengan tingkat keparahan; yang masih terbuka dan berat menandai project *At risk*.
+- **Catatan** — linimasa perkembangan berkala. **Kendala** — risiko/blocker dengan tingkat keparahan.
 
-Indikator kesehatan (dihitung server): `done`, `hold`, `overdue` (lewat target & belum 100%),
-`at_risk` (progres tertinggal >15 poin dari jadwal, atau ada kendala Tinggi yang terbuka), `on_track`.
+Kesehatan project dihitung server: `done`, `hold`, `overdue` (lewat target & belum 100%), `at_risk`
+(progres tertinggal >15 poin dari jadwal, atau ada kendala Tinggi yang terbuka), `on_track`.
 
-Endpoint admin (semua butuh token): `GET /api/projects/overview`, `GET /api/projects/:id`,
-`PUT /api/projects/:id/team`, `/api/members`, `POST /api/projects/:id/features`, `/api/features/:id`,
-`/api/features/:id/subtasks`, `/api/subtasks/:id`, `/api/projects/:id/updates`, `/api/projects/:id/blockers`.
 `GET /api/projects` (publik) hanya mengembalikan field aman (tanpa klien, link, catatan, kendala).
 
-## Portofolio
+## API
 
-Karya dikelola dari **Admin → Portofolio** (tambah/edit/hapus, saklar Tayang/Unggulan/Iframe, urutan).
-Gambar dan video pratinjau dibuat otomatis oleh skrip penangkap (butuh `npm install` di `backend/`
-dan `npx playwright install chromium` sekali saja):
+Semua rute berada di `src/app/api`. Yang bertanda 🔒 butuh sesi admin (cookie) atau `Authorization: Bearer`.
 
-```bash
-cd backend
-npm run capture                              # semua karya yang tayang
-npm run capture -- --only rata-coffee,finatra
-npm run capture -- --no-video                # hanya screenshot
-```
-
-Hasilnya ke `public/showcases/` dan URL-nya otomatis diisi ke database. Folder ini **tidak ikut git**
-(`.gitignore`): jalankan ulang `npm run capture` di tiap lingkungan baru (dev/deploy) sebelum galeri
-menampilkan gambar, atau pindahkan medianya ke penyimpanan lain dan isi URL-nya dari Admin → Portofolio. Jika sebuah situs memblokir
-iframe, biarkan saklar **Iframe** mati agar modal memakai video.
+| Endpoint | Keterangan |
+|---|---|
+| `POST /api/auth/login` · `logout` · `GET /api/auth/me` · `POST change-password` | sesi admin |
+| `GET /api/projects` | publik, field aman |
+| 🔒 `GET /api/projects/overview` · `GET/PUT/DELETE /api/projects/:id` · `POST /api/projects` · `PUT /:id/team` | project & tim |
+| 🔒 `POST /api/projects/:id/features` · `PUT/DELETE /api/features/:id` · `POST /api/features/:id/subtasks` · `PUT/DELETE /api/subtasks/:id` | fitur & sub-tugas |
+| 🔒 `POST /api/projects/:id/updates` · `DELETE /api/updates/:id` · `POST /api/projects/:id/blockers` · `PUT/DELETE /api/blockers/:id` | catatan & kendala |
+| 🔒 `GET/POST /api/members` · `PUT/DELETE /api/members/:id` | anggota tim |
+| `GET /api/showcases` (publik) · 🔒 `GET /all` · `POST` · `PUT/DELETE /:id` | karya portofolio |
+| 🔒 `POST /api/uploads/sign` · `POST /api/uploads/confirm` · `DELETE /api/uploads` | unggah media |
+| `GET /api/settings` (publik) · 🔒 `PUT /api/settings` | pengaturan (nomor WhatsApp) |
 
 ## Tema
 
-Soft editorial: krem hangat, tinta kehijauan, aksen olive. Font: Cormorant Garamond (judul),
-DM Sans (teks), JetBrains Mono (label). Halaman admin memakai gaya netral (abu + aksen olive).
+Soft editorial: krem hangat, tinta kehijauan, aksen olive. Font: Cormorant Garamond (judul), DM Sans (teks),
+JetBrains Mono (label), dimuat lewat `next/font`. Panel admin memakai gaya netral (abu + aksen olive).
 
-| Token        | Hex       | Penggunaan                      |
-| ------------ | --------- | ------------------------------- |
-| `cream`      | `#F3EEE6` | Latar halaman                   |
-| `paper`      | `#FBF8F3` | Kartu / permukaan               |
-| `ink`        | `#1E211D` | Teks utama                      |
-| `ink-soft`   | `#5C6157` | Teks sekunder                   |
-| `olive`      | `#5C6E21` | Aksen utama                     |
-| `sand`       | `#B8A58A` | Aksen hangat                    |
-| `sand-light` | `#E4DAC8` | Garis & border halus            |
-| `clay`       | `#BD3D44` | Peringatan / status On Hold     |
+| Token | Hex | Penggunaan |
+|---|---|---|
+| `cream` | `#F3EEE6` | Latar halaman |
+| `paper` | `#FBF8F3` | Kartu / permukaan |
+| `ink` / `ink-soft` | `#1E211D` / `#5C6157` | Teks utama / sekunder |
+| `olive` | `#5C6E21` | Aksen utama |
+| `sand` / `sand-light` | `#B8A58A` / `#E4DAC8` | Aksen hangat / garis halus |
+| `clay` | `#BD3D44` | Peringatan, status On Hold |
