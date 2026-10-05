@@ -5,6 +5,9 @@ import authRoutes from './routes/auth.js'
 import projectRoutes from './routes/projects.js'
 import settingsRoutes from './routes/settings.js'
 import showcaseRoutes from './routes/showcases.js'
+import memberRoutes from './routes/members.js'
+import featureRoutes from './routes/features.js'
+import trackingRoutes from './routes/tracking.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -25,6 +28,10 @@ app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/showcases', showcaseRoutes)
+app.use('/api/members', memberRoutes)
+// Rute bersarang (/api/projects/:id/features, /api/features/:id, dll.) — auth dipasang per-rute.
+app.use('/api', featureRoutes)
+app.use('/api', trackingRoutes)
 
 // 404 fallback
 app.use((_req, res) => {

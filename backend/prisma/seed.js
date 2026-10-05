@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import bcrypt from 'bcrypt'
 import { PrismaClient } from '@prisma/client'
+import { projectProgressFrom } from '../lib/tracking.js'
 
 const prisma = new PrismaClient()
 
@@ -13,9 +14,9 @@ const PROJECTS = [
     status: 'active',
     icon: '🛒',
     pics: [
-      { name: 'Andi Wijaya', role: 'Lead Developer', contribution: 45, avatarColor: '#1E5FA8' },
-      { name: 'Sari Putri', role: 'Frontend Dev', contribution: 35, avatarColor: '#4A90D9' },
-      { name: 'Budi Santoso', role: 'QA Engineer', contribution: 20, avatarColor: '#0D2B4E' },
+      { name: 'Andi Wijaya', role: 'Lead Developer', contribution: 45, avatarColor: '#5C6E21' },
+      { name: 'Sari Putri', role: 'Frontend Dev', contribution: 35, avatarColor: '#8A7556' },
+      { name: 'Budi Santoso', role: 'QA Engineer', contribution: 20, avatarColor: '#1E211D' },
     ],
   },
   {
@@ -26,8 +27,8 @@ const PROJECTS = [
     status: 'active',
     icon: '👔',
     pics: [
-      { name: 'Citra Dewi', role: 'Fullstack Dev', contribution: 60, avatarColor: '#1E5FA8' },
-      { name: 'Eko Prasetyo', role: 'Backend Dev', contribution: 40, avatarColor: '#4A90D9' },
+      { name: 'Citra Dewi', role: 'Fullstack Dev', contribution: 60, avatarColor: '#5C6E21' },
+      { name: 'Eko Prasetyo', role: 'Backend Dev', contribution: 40, avatarColor: '#8A7556' },
     ],
   },
   {
@@ -38,9 +39,9 @@ const PROJECTS = [
     status: 'review',
     icon: '🌾',
     pics: [
-      { name: 'Fajar Nugroho', role: 'Lead Developer', contribution: 50, avatarColor: '#0D2B4E' },
-      { name: 'Gita Lestari', role: 'UI/UX Designer', contribution: 25, avatarColor: '#4A90D9' },
-      { name: 'Hadi Kurniawan', role: 'Backend Dev', contribution: 25, avatarColor: '#1E5FA8' },
+      { name: 'Fajar Nugroho', role: 'Lead Developer', contribution: 50, avatarColor: '#1E211D' },
+      { name: 'Gita Lestari', role: 'UI/UX Designer', contribution: 25, avatarColor: '#8A7556' },
+      { name: 'Hadi Kurniawan', role: 'Backend Dev', contribution: 25, avatarColor: '#5C6E21' },
     ],
   },
   {
@@ -51,8 +52,8 @@ const PROJECTS = [
     status: 'hold',
     icon: '🚚',
     pics: [
-      { name: 'Indah Permata', role: 'Project Manager', contribution: 40, avatarColor: '#1E5FA8' },
-      { name: 'Joko Susilo', role: 'Mobile Dev', contribution: 60, avatarColor: '#4A90D9' },
+      { name: 'Indah Permata', role: 'Project Manager', contribution: 40, avatarColor: '#5C6E21', lead: true },
+      { name: 'Joko Susilo', role: 'Mobile Dev', contribution: 60, avatarColor: '#8A7556' },
     ],
   },
   {
@@ -63,8 +64,8 @@ const PROJECTS = [
     status: 'done',
     icon: '🌐',
     pics: [
-      { name: 'Kartika Sari', role: 'Frontend Dev', contribution: 70, avatarColor: '#4A90D9' },
-      { name: 'Lukman Hakim', role: 'SEO Specialist', contribution: 30, avatarColor: '#0D2B4E' },
+      { name: 'Kartika Sari', role: 'Frontend Dev', contribution: 70, avatarColor: '#8A7556' },
+      { name: 'Lukman Hakim', role: 'SEO Specialist', contribution: 30, avatarColor: '#1E211D' },
     ],
   },
 ]
@@ -115,6 +116,154 @@ const SHOWCASES = [
     description: 'Sistem monitoring dan deteksi risiko kepatuhan BPJS Kesehatan bagi pemberi kerja.' },
 ]
 
+
+// ---------------------------------------------------------------------------
+// Data contoh untuk dashboard pemantauan (fitur, sub-tugas, catatan, kendala).
+// Hanya diterapkan pada project yang belum punya fitur. Tanggal relatif terhadap hari seeding.
+// ---------------------------------------------------------------------------
+const day = (offset) => new Date(Date.now() + offset * 86400000)
+// Fitur: [judul, status, penanggung jawab, [[sub-tugas, selesai?], ...]]
+const DEMO = {
+  'Sistem Kasir UMKM': {
+    client: 'Contoh: Jaringan Toko Ritel',
+    startDate: day(-60),
+    targetDate: day(30),
+    features: [
+      ['Autentikasi & hak akses kasir', 'done', 'Andi Wijaya', [['Login & sesi', 1], ['Peran kasir/admin', 1]]],
+      ['Transaksi penjualan (POS)', 'done', 'Sari Putri', [['Keranjang & diskon', 1], ['Pembayaran tunai/QRIS', 1], ['Cetak ulang struk', 1]]],
+      ['Manajemen stok', 'in_progress', 'Andi Wijaya', [['Master produk', 1], ['Stok masuk', 1], ['Stok opname', 0], ['Notifikasi stok menipis', 0]]],
+      ['Laporan penjualan harian', 'in_progress', 'Sari Putri', [['Rekap harian', 1], ['Ekspor PDF', 0]]],
+      ['Integrasi printer struk', 'next', 'Andi Wijaya', []],
+      ['Mode offline', 'next', null, []],
+    ],
+    updates: [
+      'Modul stok masuk selesai diuji QA. Stok opname dimulai minggu ini.',
+      'Demo ke klien berjalan baik; permintaan tambahan: ekspor laporan ke PDF.',
+    ],
+    blockers: [['Menunggu spesifikasi printer termal dari klien', 'Integrasi printer belum bisa dimulai tanpa model dan driver.', 'medium']],
+  },
+  'Portal HR Internal': {
+    client: 'Contoh: Divisi HRD Internal',
+    startDate: day(-45),
+    targetDate: day(50),
+    features: [
+      ['Absensi karyawan', 'done', 'Citra Dewi', [['Check-in/out', 1], ['Rekap bulanan', 1]]],
+      ['Pengajuan cuti & approval', 'in_progress', 'Citra Dewi', [['Form pengajuan', 1], ['Alur persetujuan atasan', 0], ['Saldo cuti otomatis', 0]]],
+      ['Slip gaji digital', 'next', 'Eko Prasetyo', []],
+      ['Dashboard analitik HRD', 'next', null, []],
+    ],
+    updates: ['Absensi sudah dipakai uji coba oleh 20 karyawan.'],
+    blockers: [],
+  },
+  'Marketplace Tani': {
+    client: 'Contoh: Koperasi Tani Mandiri',
+    startDate: day(-120),
+    targetDate: day(10),
+    features: [
+      ['Katalog produk & pencarian', 'done', 'Fajar Nugroho', [['Listing produk', 1], ['Filter & kategori', 1]]],
+      ['Keranjang & checkout', 'done', 'Hadi Kurniawan', [['Keranjang', 1], ['Pembayaran', 1]]],
+      ['Sistem lelang', 'done', 'Fajar Nugroho', []],
+      ['Logistik & pengiriman', 'in_progress', 'Hadi Kurniawan', [['Pilihan kurir', 1], ['Pelacakan resi', 0]]],
+      ['UAT & perbaikan akhir', 'in_progress', 'Gita Lestari', [['Skenario UAT', 1], ['Perbaikan temuan UAT', 0]]],
+    ],
+    updates: ['Masuk tahap review. UAT bersama pengurus koperasi dijadwalkan pekan ini.'],
+    blockers: [],
+  },
+  'Aplikasi Logistik Armada': {
+    client: 'Contoh: Perusahaan Ekspedisi',
+    startDate: day(-90),
+    targetDate: day(-5),
+    features: [
+      ['Peta pelacakan real-time', 'in_progress', 'Joko Susilo', [['Tampilan peta', 1], ['Pembaruan posisi tiap 10 detik', 0]]],
+      ['Optimasi rute', 'next', 'Joko Susilo', []],
+      ['Estimasi waktu tiba (ETA)', 'next', null, []],
+      ['Notifikasi ke pelanggan', 'next', null, []],
+    ],
+    updates: ['Project ditahan sementara menunggu keputusan anggaran layanan peta.'],
+    blockers: [['Anggaran API peta belum disetujui', 'Pelacakan real-time bergantung pada layanan peta berbayar.', 'high']],
+  },
+  'Company Profile Interaktif': {
+    client: 'Contoh: PT Mitra Kreatif',
+    startDate: day(-100),
+    targetDate: day(-20),
+    features: [
+      ['Halaman utama & animasi', 'done', 'Kartika Sari', [['Hero', 1], ['Animasi scroll', 1]]],
+      ['CMS konten mandiri', 'done', 'Kartika Sari', []],
+      ['Optimasi SEO', 'done', 'Lukman Hakim', [['Meta & sitemap', 1], ['Kecepatan halaman', 1]]],
+    ],
+    updates: ['Situs resmi diluncurkan dan diserahkan ke klien.'],
+    blockers: [],
+  },
+}
+
+async function applyDemo(project, author) {
+  const demo = DEMO[project.name]
+  if (!demo) return false
+  const existing = await prisma.feature.count({ where: { projectId: project.id } })
+  if (existing > 0) return false
+
+  const members = await prisma.member.findMany()
+  const idOf = (name) => members.find((m) => m.name === name)?.id ?? null
+
+  await prisma.project.update({
+    where: { id: project.id },
+    data: { client: demo.client, startDate: demo.startDate, targetDate: demo.targetDate },
+  })
+
+  const created = []
+  for (const [i, [title, status, who, subs]] of demo.features.entries()) {
+    created.push(
+      await prisma.feature.create({
+        data: {
+          projectId: project.id,
+          title,
+          status,
+          sortOrder: i,
+          assigneeId: who ? idOf(who) : null,
+          completedAt: status === 'done' ? new Date() : null,
+          subtasks: { create: subs.map(([t, done], j) => ({ title: t, done: Boolean(done), sortOrder: j })) },
+        },
+        include: { subtasks: true },
+      }),
+    )
+  }
+
+  const pct = projectProgressFrom(created)
+  if (pct !== null) await prisma.project.update({ where: { id: project.id }, data: { percentage: pct } })
+
+  // Catatan lama di bawah, terbaru di atas.
+  for (const [i, note] of demo.updates.entries()) {
+    await prisma.projectUpdate.create({
+      data: { projectId: project.id, note, author, createdAt: day(-(demo.updates.length - i) * 4) },
+    })
+  }
+  for (const [title, detail, severity] of demo.blockers) {
+    await prisma.blocker.create({ data: { projectId: project.id, title, detail, severity } })
+  }
+  return true
+}
+
+// Cari/buat anggota global berdasarkan nama, lalu tugaskan ke project.
+async function assignTeam(projectId, pics) {
+  const leadName = (pics.find((p) => p.lead) ?? [...pics].sort((a, b) => b.contribution - a.contribution)[0]).name
+  for (const pic of pics) {
+    let member = await prisma.member.findFirst({ where: { name: pic.name } })
+    if (!member) {
+      member = await prisma.member.create({
+        data: { name: pic.name, role: pic.role, avatarColor: pic.avatarColor },
+      })
+    }
+    await prisma.projectMember.create({
+      data: {
+        projectId,
+        memberId: member.id,
+        role: pic.name === leadName ? 'lead' : 'member',
+        contribution: pic.contribution,
+      },
+    })
+  }
+}
+
 async function main() {
   // --- Admin ---
   const username = process.env.SEED_ADMIN_USERNAME || 'admin'
@@ -131,14 +280,33 @@ async function main() {
   // --- Projects (hanya jika tabel masih kosong) ---
   const count = await prisma.project.count()
   if (count === 0) {
-    for (const p of PROJECTS) {
-      await prisma.project.create({
-        data: { ...p, pics: { create: p.pics } },
-      })
+    for (const { pics, ...p } of PROJECTS) {
+      const project = await prisma.project.create({ data: p })
+      await assignTeam(project.id, pics)
     }
     console.log(`✅ ${PROJECTS.length} project contoh berhasil dibuat.`)
   } else {
     console.log('ℹ️  Project sudah ada, lewati seeding project.')
+  }
+
+  // --- Data contoh pemantauan (hanya untuk project yang belum punya fitur) ---
+  let demoCount = 0
+  for (const project of await prisma.project.findMany()) {
+    if (await applyDemo(project, username)) demoCount++
+  }
+  console.log(`✅ Data pemantauan contoh diterapkan ke ${demoCount} project.`)
+
+  // --- Ratakan PIC utama untuk project contoh yang diberi penanda `lead` ---
+  for (const { name, pics } of PROJECTS) {
+    const leadPic = pics.find((p) => p.lead)
+    if (!leadPic) continue
+    const project = await prisma.project.findFirst({ where: { name } })
+    const member = await prisma.member.findFirst({ where: { name: leadPic.name } })
+    if (!project || !member) continue
+    const rows = await prisma.projectMember.findMany({ where: { projectId: project.id } })
+    if (rows.find((r) => r.role === 'lead')?.memberId === member.id) continue
+    await prisma.projectMember.updateMany({ where: { projectId: project.id }, data: { role: 'member' } })
+    await prisma.projectMember.updateMany({ where: { projectId: project.id, memberId: member.id }, data: { role: 'lead' } })
   }
 
   // --- Showcase (buat jika slug belum ada; edit dari admin tidak ditimpa) ---
