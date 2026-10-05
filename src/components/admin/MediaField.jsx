@@ -44,7 +44,7 @@ export default function MediaField({ id, label, kind, value, onChange, slug, onU
     <div>
       <label className="a-label" htmlFor={id}>{label}</label>
       <div className="flex gap-2">
-        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} className="a-input font-mono text-xs" placeholder={placeholder} />
+        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} className="a-input font-mono lg:text-xs" placeholder={placeholder} />
         <input ref={inputRef} type="file" accept={spec.accept} onChange={pick} className="sr-only" tabIndex={-1} aria-hidden="true" />
         <button
           type="button"
