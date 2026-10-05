@@ -4,7 +4,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime: koneksi pooled (Supabase pooler / PgBouncer, port 6543).
+  url       = env("DATABASE_URL")
+  // Migrasi: koneksi langsung (port 5432) — PgBouncer tidak cocok untuk DDL.
+  directUrl = env("DIRECT_URL")
 }
 
 model Project {
