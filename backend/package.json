@@ -7,18 +7,21 @@
     "start": "node index.js",
     "seed": "node prisma/seed.js",
     "capture": "node scripts/capture-showcases.mjs",
+    "upload-media": "node scripts/upload-media.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "@supabase/supabase-js": "^2.109.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.4.0"
   },
   "devDependencies": {
     "playwright": "^1.63.0",

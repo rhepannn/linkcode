@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js'
 import projectRoutes from './routes/projects.js'
 import settingsRoutes from './routes/settings.js'
 import showcaseRoutes from './routes/showcases.js'
+import uploadRoutes from './routes/uploads.js'
 import memberRoutes from './routes/members.js'
 import featureRoutes from './routes/features.js'
 import trackingRoutes from './routes/tracking.js'
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/showcases', showcaseRoutes)
+app.use('/api/uploads', uploadRoutes)
 app.use('/api/members', memberRoutes)
 // Rute bersarang (/api/projects/:id/features, /api/features/:id, dll.) — auth dipasang per-rute.
 app.use('/api', featureRoutes)

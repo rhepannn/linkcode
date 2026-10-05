@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware } from '../middleware/authMiddleware.js'
+import { removeByUrls } from '../lib/storage.js'
 
 const prisma = new PrismaClient()
 const router = Router()
 
 const VALID_SECTORS = ['industri', 'lingkungan', 'pemerintahan', 'platform', 'bisnis']
+const MEDIA_FIELDS = ['thumbnailUrl', 'previewUrl', 'videoUrl']
 const ORDER = [{ sortOrder: 'asc' }, { id: 'asc' }]
 
 function slugify(text) {
@@ -115,7 +117,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
   if (errors.length) return res.status(400).json({ message: errors.join(' ') })
 
   try {
-    res.json(await prisma.showcase.update({ where: { id }, data }))
+    const before = await prisma.showcase.findUnique({ where: { id } })
+    const updated = await prisma.showcase.update({ where: { id }, data })
+    // Media yang diganti/dikosongkan dibuang dari Storage (hanya objek milik bucket kita; best-effort).
+    if (before) {
+      const replaced = MEDIA_FIELDS.filter((f) => before[f] && before[f] !== updated[f]).map((f) => before[f])
+      if (replaced.length) removeByUrls(replaced).catch(() => {})
+    }
+    res.json(updated)
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ message: 'Karya tidak ditemukan.' })
     if (err.code === 'P2002') return res.status(409).json({ message: 'Slug sudah dipakai.' })
@@ -130,7 +139,9 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID tidak valid.' })
 
   try {
+    const before = await prisma.showcase.findUnique({ where: { id } })
     await prisma.showcase.delete({ where: { id } })
+    if (before) removeByUrls(MEDIA_FIELDS.map((f) => before[f]).filter(Boolean)).catch(() => {})
     res.json({ message: 'Karya berhasil dihapus.' })
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ message: 'Karya tidak ditemukan.' })

@@ -5,6 +5,10 @@
 //   npm run capture                       # semua karya yang published
 //   npm run capture -- --only rata-coffee,finatra
 //   npm run capture -- --no-video         # hanya screenshot
+//   npm run capture -- --local            # simpan hanya di public/showcases (jangan unggah)
+//
+// Jika SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY terisi, hasil capture otomatis diunggah ke
+// Supabase Storage dan database diisi URL publiknya; selain itu memakai path lokal.
 import 'dotenv/config'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -14,6 +18,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { chromium } from 'playwright'
 import { PrismaClient } from '@prisma/client'
+import { ensureBucket, storageConfigured, uploadFile } from '../lib/storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = path.resolve(__dirname, '../../public/showcases')
@@ -32,6 +37,7 @@ const run = promisify(execFile)
 
 const args = process.argv.slice(2)
 const withVideo = !args.includes('--no-video')
+const useStorage = storageConfigured() && !args.includes('--local')
 const onlyArg = args.find((a) => a.startsWith('--only='))?.split('=')[1] ?? args[args.indexOf('--only') + 1]
 const only = args.includes('--only') || onlyArg ? new Set((onlyArg || '').split(',').filter(Boolean)) : null
 
@@ -159,6 +165,8 @@ async function main() {
     return
   }
 
+  if (useStorage) await ensureBucket()
+  console.log(useStorage ? 'Mode: unggah ke Supabase Storage' : 'Mode: simpan lokal (public/showcases)')
   const browser = await chromium.launch()
   const report = []
 
@@ -188,6 +196,18 @@ async function main() {
       }
     }
 
+    if (useStorage && Object.keys(data).length) {
+      try {
+        const files = { thumbnailUrl: [`${item.slug}-thumb.jpg`, 'thumbnail'], previewUrl: [`${item.slug}.jpg`, 'preview'], videoUrl: [`${item.slug}.webm`, 'video'] }
+        for (const field of Object.keys(data)) {
+          const [file, kind] = files[field]
+          data[field] = await uploadFile(path.join(OUT_DIR, file), item.slug, kind)
+        }
+      } catch (err) {
+        row.catatan += ` | unggah: ${String(err.message).split('\n')[0]}`
+        for (const k of Object.keys(data)) delete data[k] // gagal unggah → jangan ubah database
+      }
+    }
     if (Object.keys(data).length) await prisma.showcase.update({ where: { id: item.id }, data })
     console.log(`gambar ${row.gambar}, video ${row.video}`)
     report.push(row)
