@@ -106,7 +106,9 @@ npm run capture -- --only rata-coffee,finatra
 npm run capture -- --no-video                # hanya screenshot
 ```
 
-Hasilnya ke `public/showcases/` dan URL-nya otomatis diisi ke database. Jika sebuah situs memblokir
+Hasilnya ke `public/showcases/` dan URL-nya otomatis diisi ke database. Folder ini **tidak ikut git**
+(`.gitignore`): jalankan ulang `npm run capture` di tiap lingkungan baru (dev/deploy) sebelum galeri
+menampilkan gambar, atau pindahkan medianya ke penyimpanan lain dan isi URL-nya dari Admin → Portofolio. Jika sebuah situs memblokir
 iframe, biarkan saklar **Iframe** mati agar modal memakai video.
 
 ## Tema

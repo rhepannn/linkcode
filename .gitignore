@@ -22,3 +22,6 @@ npm-debug.log*
 
 # prisma
 backend/prisma/dev.db
+
+# media pratinjau portofolio (dibuat ulang dengan `npm run capture` di backend/)
+public/showcases/
