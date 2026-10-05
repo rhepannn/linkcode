@@ -1,9 +1,9 @@
 // Label, warna, dan urutan untuk tiap status project.
 export const STATUS_CONFIG = {
-  active: { label: 'Active', bgColor: '#E6F4E6', textColor: '#2E7D32', barColor: '#4A90D9' },
-  review: { label: 'In Review', bgColor: '#E3F0FB', textColor: '#1565C0', barColor: '#1E5FA8' },
-  hold: { label: 'On Hold', bgColor: '#FFF8E1', textColor: '#F57F17', barColor: '#F9A825' },
-  done: { label: 'Done', bgColor: '#E8F5E9', textColor: '#1B5E20', barColor: '#2E7D32' },
+  active: { label: 'Active', bgColor: '#E8EDD5', textColor: '#46541A', barColor: '#5C6E21' },
+  review: { label: 'In Review', bgColor: '#EFE6D3', textColor: '#7A6440', barColor: '#B8A58A' },
+  hold: { label: 'On Hold', bgColor: '#F6E1E1', textColor: '#9A2F36', barColor: '#BD3D44' },
+  done: { label: 'Done', bgColor: '#E4E6E1', textColor: '#1E211D', barColor: '#1E211D' },
 }
 
 // Daftar status untuk filter pills & form select (urut tampil).

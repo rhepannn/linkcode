@@ -1,10 +1,10 @@
-// Progress bar tipis (5px) dengan warna mengikuti status.
-export default function ProgressBar({ percentage = 0, color = '#4A90D9' }) {
+// Progress bar tipis dengan warna mengikuti status.
+export default function ProgressBar({ percentage = 0, color = '#5C6E21' }) {
   const safe = Math.max(0, Math.min(100, percentage))
   return (
-    <div className="h-2.5 w-full overflow-hidden border-2 border-navy bg-light-blue/30">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-sand-light/70">
       <div
-        className="h-full transition-all duration-500 ease-out"
+        className="h-full rounded-full transition-all duration-700 ease-out"
         style={{ width: `${safe}%`, backgroundColor: color }}
       />
     </div>
