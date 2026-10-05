@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { SECTORS, SECTOR_ORDER } from '../../utils/sectorConfig.js'
 import { slugify } from '../../utils/slugify.js'
 import Switch from './Switch.jsx'
+import MediaField from './MediaField.jsx'
+import { deleteUpload } from '../../api/client.js'
 
 function blank(nextOrder) {
   return {
@@ -53,6 +55,8 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
   const [slugTouched, setSlugTouched] = useState(Boolean(initial))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // URL hasil unggah selama form terbuka; yang akhirnya tidak dipakai dibuang dari Storage.
+  const uploaded = useRef(new Set())
 
   const isEdit = Boolean(initial)
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
@@ -60,12 +64,25 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
   const setTitle = (title) =>
     setForm((f) => ({ ...f, title, slug: slugTouched ? f.slug : slugify(title) }))
 
+  // Buang unggahan sesi ini yang tidak termasuk `keep` (best-effort; server menolak bila masih dipakai karya).
+  const discardUnused = (keep = []) => {
+    for (const url of uploaded.current) {
+      if (!keep.includes(url)) deleteUpload(url).catch(() => {})
+    }
+    uploaded.current.clear()
+  }
+
+  const handleClose = () => {
+    discardUnused() // ditutup tanpa menyimpan: semua unggahan sesi ini yatim
+    onClose()
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSaving(true)
     try {
-      await onSubmit({
+      const payload = {
         title: form.title.trim(),
         slug: form.slug.trim() || slugify(form.title),
         url: form.url.trim(),
@@ -83,7 +100,9 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
         embeddable: form.embeddable,
         published: form.published,
         sortOrder: Number(form.sortOrder) || 0,
-      })
+      }
+      await onSubmit(payload)
+      discardUnused([payload.thumbnailUrl, payload.previewUrl, payload.videoUrl])
     } catch (err) {
       setError(err?.response?.data?.message || 'Gagal menyimpan karya.')
       setSaving(false)
@@ -99,7 +118,7 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
             aria-label="Tutup"
           >
@@ -159,31 +178,29 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
             <input id="sc-tech" type="text" value={form.techStack} onChange={(e) => set('techStack', e.target.value)} className="a-input" placeholder="React, Node.js, PostgreSQL (pisahkan dengan koma)" />
           </div>
 
-          <fieldset className="space-y-3 rounded-lg border border-neutral-200 p-4">
+          <fieldset className="space-y-4 rounded-lg border border-neutral-200 p-4">
             <legend className="px-1 text-xs font-medium text-neutral-600">Media pratinjau</legend>
             <p className="text-xs text-neutral-500">
-              Isi path lokal (mis. <span className="font-mono">/showcases/nama.jpg</span>) atau URL penuh. Dibuat otomatis oleh{' '}
+              Unggah langsung ke penyimpanan, atau isi URL/path secara manual. Bisa juga dibuat otomatis oleh{' '}
               <span className="font-mono">npm run capture</span> di folder backend.
             </p>
             {[
-              ['thumbnailUrl', 'Thumbnail', '/showcases/slug-thumb.jpg'],
-              ['previewUrl', 'Screenshot halaman penuh', '/showcases/slug.jpg'],
-              ['videoUrl', 'Video rekaman scroll', '/showcases/slug.webm'],
-            ].map(([key, label, ph]) => (
-              <div key={key}>
-                <label className="a-label" htmlFor={`sc-${key}`}>{label}</label>
-                <input id={`sc-${key}`} type="text" value={form[key]} onChange={(e) => set(key, e.target.value)} className="a-input font-mono text-xs" placeholder={ph} />
-              </div>
-            ))}
-            {form.thumbnailUrl && (
-              <img
-                src={form.thumbnailUrl}
-                alt="Pratinjau thumbnail"
-                className="h-24 w-auto rounded border border-neutral-200 object-cover"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-                onLoad={(e) => (e.currentTarget.style.display = '')}
+              ['thumbnailUrl', 'thumbnail', 'Thumbnail', '/showcases/slug-thumb.jpg'],
+              ['previewUrl', 'preview', 'Screenshot halaman penuh', '/showcases/slug.jpg'],
+              ['videoUrl', 'video', 'Video rekaman scroll', '/showcases/slug.webm'],
+            ].map(([key, kind, label, ph]) => (
+              <MediaField
+                key={key}
+                id={`sc-${key}`}
+                kind={kind}
+                label={label}
+                placeholder={ph}
+                value={form[key]}
+                onChange={(v) => set(key, v)}
+                slug={form.slug.trim() || slugify(form.title)}
+                onUploaded={(url) => uploaded.current.add(url)}
               />
-            )}
+            ))}
           </fieldset>
 
           <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 px-4">
@@ -204,7 +221,7 @@ export default function ShowcaseForm({ initial, nextOrder = 0, onSubmit, onClose
           )}
 
           <div className="flex justify-end gap-2 border-t border-neutral-200 pt-4">
-            <button type="button" onClick={onClose} className="a-btn-secondary">
+            <button type="button" onClick={handleClose} className="a-btn-secondary">
               Batal
             </button>
             <button type="submit" disabled={saving} className="a-btn-primary">

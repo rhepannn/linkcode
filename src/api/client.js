@@ -111,6 +111,27 @@ export async function deleteShowcase(id) {
   return data
 }
 
+// ---- Unggah media (Supabase Storage lewat backend) ----
+// kind: 'thumbnail' | 'preview' | 'video'. Mengembalikan { url, size, contentType }.
+export async function uploadMedia({ file, slug, kind, onProgress }) {
+  const body = new FormData()
+  // Field teks harus sebelum berkas agar terbaca oleh multer di server.
+  body.append('slug', slug)
+  body.append('kind', kind)
+  body.append('file', file)
+  const { data } = await client.post('/api/uploads', body, {
+    headers: { 'Content-Type': 'multipart/form-data' }, // tanpa ini, default JSON instance merusak FormData
+    onUploadProgress: (e) => e.total && onProgress?.(Math.round((e.loaded / e.total) * 100)),
+  })
+  return data
+}
+
+// Buang unggahan yang batal dipakai (server menolak jika masih dipakai karya).
+export async function deleteUpload(url) {
+  const { data } = await client.delete('/api/uploads', { data: { url } })
+  return data
+}
+
 // ---- Settings ----
 export async function getSettings() {
   const { data } = await client.get('/api/settings')
