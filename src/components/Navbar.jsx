@@ -10,6 +10,9 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6 text-sm text-ink-soft">
+          <a href="#portofolio" className="hidden transition-colors hover:text-ink sm:inline">
+            Portofolio
+          </a>
           <a href="#project" className="hidden transition-colors hover:text-ink sm:inline">
             Project
           </a>

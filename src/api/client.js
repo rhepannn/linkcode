@@ -55,6 +55,33 @@ export async function deleteProject(id) {
   return data
 }
 
+// ---- Showcases (portofolio) ----
+export async function getShowcases() {
+  const { data } = await client.get('/api/showcases')
+  return data
+}
+
+// Admin: termasuk karya yang disembunyikan (published = false).
+export async function getAllShowcases() {
+  const { data } = await client.get('/api/showcases/all')
+  return data
+}
+
+export async function createShowcase(payload) {
+  const { data } = await client.post('/api/showcases', payload)
+  return data
+}
+
+export async function updateShowcase(id, payload) {
+  const { data } = await client.put(`/api/showcases/${id}`, payload)
+  return data
+}
+
+export async function deleteShowcase(id) {
+  const { data } = await client.delete(`/api/showcases/${id}`)
+  return data
+}
+
 // ---- Settings ----
 export async function getSettings() {
   const { data } = await client.get('/api/settings')

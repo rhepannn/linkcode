@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar.jsx'
 import ProjectCard from '../components/ProjectCard.jsx'
 import FilterPill from '../components/FilterPill.jsx'
 import Reveal from '../components/Reveal.jsx'
+import Portfolio from '../components/portfolio/Portfolio.jsx'
 import { ArrowDown, MessageCircle } from 'lucide-react'
 import { getProjects, getSettings } from '../api/client.js'
 import { MOCK_PROJECTS } from '../data/projects.js'
@@ -56,8 +57,8 @@ function Hero() {
         </Reveal>
 
         <Reveal delay={300} className="mt-10 flex flex-wrap items-center gap-4">
-          <a href="#project" className="btn-solid">
-            Lihat project
+          <a href="#portofolio" className="btn-solid">
+            Lihat portofolio
             <ArrowDown size={16} />
           </a>
           <a href="#kontak" className="text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">
@@ -165,6 +166,7 @@ export default function PublicPage() {
     <div className="min-h-screen bg-cream">
       <Navbar />
       <Hero />
+      <Portfolio />
 
       <section id="project" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-24 sm:px-8">
         <Reveal className="mb-10 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
