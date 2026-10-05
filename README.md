@@ -71,6 +71,18 @@ Kredensial admin default dari seed: **`admin` / `admin123`** (ubah via `SEED_ADM
 | PUT    | `/api/showcases/:id`  | ✅   | Ubah karya (replace penuh) |
 | DELETE | `/api/showcases/:id`  | ✅   | Hapus karya             |
 
+## Media portofolio (Supabase Storage)
+
+Gambar/video karya disimpan di bucket publik Supabase agar tersedia di semua lingkungan, bukan di git.
+
+1. Dashboard Supabase → *Project Settings → API* → salin **service_role key** (rahasia).
+2. Isi `backend/.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (lihat `.env.example`), lalu restart backend.
+   Kunci ini hanya dipakai backend; jangan masukkan ke frontend atau commit.
+3. **Admin → Portofolio → Edit**: tombol *Unggah* di tiap kolom media (JPG/PNG/WebP ≤ 8–12 MB, WebM/MP4 ≤ 25 MB).
+   Berkas diperiksa isinya (bukan hanya ekstensi). Media yang diganti atau karya yang dihapus ikut dibersihkan dari bucket.
+4. Pindahkan media lokal yang sudah ada: `cd backend && npm run upload-media -- --dry-run`, lalu tanpa `--dry-run`.
+5. `npm run capture` otomatis mengunggah hasilnya bila Storage terkonfigurasi (`--local` untuk menyimpan lokal saja).
+
 ## Pemantauan project (admin)
 
 **Admin → Dashboard** merangkum semua project: berjalan, selesai, ditahan, rata-rata progres, dan daftar
