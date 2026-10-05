@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,jsx}'],
+  content: ['./src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
@@ -16,9 +16,20 @@ export default {
         clay: '#BD3D44', // peringatan / hold
       },
       fontFamily: {
-        sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['"Cormorant Garamond"', 'ui-serif', 'Georgia', 'serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        // Variabel CSS diisi oleh next/font di src/app/layout.jsx
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'ui-serif', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+      },
+      keyframes: {
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        // both = tahan keadaan awal (tersembunyi) sampai delay selesai; berjalan tanpa JavaScript.
+        'fade-up': 'fade-up 0.7s ease-out both',
       },
       boxShadow: {
         soft: '0 1px 2px rgba(30,33,29,0.04), 0 12px 32px -16px rgba(30,33,29,0.18)',

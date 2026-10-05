@@ -1,3 +1,5 @@
+'use client'
+
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import PageHeader from './PageHeader.jsx'
 import HealthBadge from './HealthBadge.jsx'

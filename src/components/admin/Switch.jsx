@@ -1,3 +1,5 @@
+'use client'
+
 // Saklar kecil (role="switch") untuk flag boolean di admin. Lebih besar di layar kecil agar mudah disentuh.
 export default function Switch({ checked, onChange, label, disabled = false }) {
   return (

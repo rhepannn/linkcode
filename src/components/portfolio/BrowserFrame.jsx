@@ -1,3 +1,5 @@
+'use client'
+
 import { hostnameOf } from '../../utils/sectorConfig.js'
 
 // Bingkai jendela browser: tiga titik + bar alamat. `children` = isi halaman.

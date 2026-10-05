@@ -1,6 +1,5 @@
 # dependencies
 node_modules
-backend/node_modules
 
 # build output
 dist
@@ -8,7 +7,6 @@ dist-ssr
 
 # env
 .env
-backend/.env
 
 # logs
 *.log
@@ -21,7 +19,12 @@ npm-debug.log*
 *.local
 
 # prisma
-backend/prisma/dev.db
 
-# media pratinjau portofolio (dibuat ulang dengan `npm run capture` di backend/)
+# media pratinjau portofolio (dibuat ulang dengan `npm run capture`)
 public/showcases/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo

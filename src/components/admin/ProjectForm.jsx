@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { STATUS_ORDER, STATUS_CONFIG } from '../../utils/statusConfig.js'

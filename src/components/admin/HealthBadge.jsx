@@ -1,3 +1,5 @@
+'use client'
+
 import { HEALTH } from '../../utils/trackingConfig.js'
 
 // Badge kesehatan project (on track / at risk / terlambat / ditahan / selesai).

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect } from 'react'
 
 // Dialog konfirmasi untuk aksi destruktif.

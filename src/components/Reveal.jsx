@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef, useState } from 'react'
 
 // Fade-up halus saat elemen masuk viewport. Dinonaktifkan jika user minta reduced motion.
@@ -31,7 +33,7 @@ export default function Reveal({ as: Tag = 'div', delay = 0, className = '', chi
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
       className={`transition-all duration-700 ease-out ${
-        shown ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'
+        shown ? 'translate-y-0 opacity-100' : 'reveal-hidden translate-y-5 opacity-0'
       } ${className}`}
     >
       {children}

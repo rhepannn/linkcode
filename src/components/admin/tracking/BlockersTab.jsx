@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { CheckCircle2, RotateCcw, Trash2 } from 'lucide-react'
 import { createBlocker, deleteBlocker, updateBlocker } from '../../../api/client.js'

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ExternalLink, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import PageHeader from './PageHeader.jsx'
@@ -386,8 +388,8 @@ export default function ShowcasesPanel() {
           onCancel={() => setDeleting(null)}
         >
           Karya <span className="font-medium text-neutral-900">{deleting.title}</span> akan dihapus permanen dari
-          portofolio. File gambar dan video di <span className="font-mono">public/showcases</span> tidak ikut
-          terhapus. Untuk menyembunyikan sementara, matikan saklar “Tayang”.
+          portofolio, termasuk gambar dan video yang tersimpan di penyimpanan. Untuk menyembunyikan sementara,
+          matikan saklar “Tayang”.
         </ConfirmDialog>
       )}
     </div>

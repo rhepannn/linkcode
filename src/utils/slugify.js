@@ -1,4 +1,4 @@
-// "Rata Coffee!" -> "rata-coffee". Selaras dengan slugify di backend/routes/showcases.js.
+// "Rata Coffee!" -> "rata-coffee". Selaras dengan slugify di src/lib/parsers.js.
 export function slugify(text = '') {
   return String(text)
     .toLowerCase()

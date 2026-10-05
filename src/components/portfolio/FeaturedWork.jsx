@@ -1,3 +1,6 @@
+'use client'
+
+import Link from 'next/link'
 import { ArrowUpRight, Play } from 'lucide-react'
 import BrowserFrame from './BrowserFrame.jsx'
 import ScrollPreview from './ScrollPreview.jsx'
@@ -35,7 +38,9 @@ export default function FeaturedWork({ work, index, onOpen }) {
         <p className="font-mono text-xs text-sand">{String(index + 1).padStart(2, '0')}</p>
         <p className="eyebrow mt-4">{sectorLabel(work.sector)}</p>
         <h3 className="mt-3 font-display text-4xl font-medium leading-[1.05] tracking-tight sm:text-5xl">
-          {work.title}
+          <Link href={`/karya/${work.slug}`} className="transition-colors hover:text-olive">
+            {work.title}
+          </Link>
         </h3>
         <p className="mt-4 max-w-md leading-relaxed text-ink-soft">{work.description}</p>
 
@@ -54,14 +59,12 @@ export default function FeaturedWork({ work, index, onOpen }) {
             <Play size={14} />
             Lihat pratinjau
           </button>
-          <a
-            href={work.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href={`/karya/${work.slug}`}
             className="inline-flex items-center gap-1 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline"
           >
-            Kunjungi situs <ArrowUpRight size={15} />
-          </a>
+            Lihat detail <ArrowUpRight size={15} />
+          </Link>
         </div>
       </div>
     </Reveal>

@@ -1,3 +1,5 @@
+'use client'
+
 // Pill filter status.
 export default function FilterPill({ label, count, active, onClick }) {
   return (

@@ -1,5 +1,7 @@
+'use client'
+
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 // Layar login admin — halaman admin tidak bisa dilihat tanpa login berhasil.
 export default function LoginModal({ onSubmit }) {
@@ -75,7 +77,7 @@ export default function LoginModal({ onSubmit }) {
         </div>
 
         <p className="mt-4 text-center text-sm text-neutral-500">
-          <Link to="/" className="hover:text-neutral-900 hover:underline">
+          <Link href="/" className="hover:text-neutral-900 hover:underline">
             ← Kembali ke situs
           </Link>
         </p>

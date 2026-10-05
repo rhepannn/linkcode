@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, ExternalLink, GitBranch, Globe, Pencil, TestTube2 } from 'lucide-react'
 import HealthBadge from '../HealthBadge.jsx'

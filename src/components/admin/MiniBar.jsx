@@ -1,3 +1,5 @@
+'use client'
+
 // Bar progres kecil untuk tabel/kartu admin.
 export default function MiniBar({ value = 0, color = '#5C6E21', className = '' }) {
   const v = Math.max(0, Math.min(100, value))

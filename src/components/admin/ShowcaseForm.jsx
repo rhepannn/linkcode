@@ -1,3 +1,5 @@
+'use client'
+
 import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { SECTORS, SECTOR_ORDER } from '../../utils/sectorConfig.js'

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { getSettings, updateSettings, changePassword } from '../api/client.js'
 

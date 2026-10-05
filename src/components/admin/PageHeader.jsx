@@ -1,3 +1,5 @@
+'use client'
+
 // Judul halaman admin + slot aksi di kanan (membungkus ke bawah di layar sempit).
 export default function PageHeader({ title, sub, children }) {
   return (

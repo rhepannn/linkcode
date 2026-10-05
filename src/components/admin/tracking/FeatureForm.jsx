@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, X } from 'lucide-react'
 import { createSubtask, deleteSubtask, updateSubtask } from '../../../api/client.js'

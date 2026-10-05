@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import Avatar from '../Avatar.jsx'

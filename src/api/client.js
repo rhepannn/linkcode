@@ -1,28 +1,21 @@
 import axios from 'axios'
-import { useAuthStore } from '../store/authStore.js'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-
+// Next.js menyajikan UI dan API dari origin yang sama: baseURL kosong, dan cookie sesi httpOnly
+// dikirim otomatis oleh browser (tidak ada token yang disimpan di JavaScript).
 const client = axios.create({
-  baseURL,
+  baseURL: '',
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Interceptor: sisipkan JWT dari Zustand (memory) ke tiap request.
-client.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+export const UNAUTHORIZED_EVENT = 'lc:unauthorized'
 
-// Interceptor response: jika 401, paksa logout (token invalid/expired).
+// 401 pada permintaan terautentikasi → beri tahu UI agar kembali ke layar login.
 client.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout()
+    const url = error.config?.url || ''
+    if (error.response?.status === 401 && !url.startsWith('/api/auth/login') && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
     }
     return Promise.reject(error)
   },
@@ -31,7 +24,11 @@ client.interceptors.response.use(
 // ---- Auth ----
 export async function login({ username, password }) {
   const { data } = await client.post('/api/auth/login', { username, password })
-  return data // { token, username? }
+  return data // { username } — token ada di cookie httpOnly
+}
+
+export async function logout() {
+  await client.post('/api/auth/logout')
 }
 
 // ---- Projects ----
@@ -111,18 +108,29 @@ export async function deleteShowcase(id) {
   return data
 }
 
-// ---- Unggah media (Supabase Storage lewat backend) ----
+// ---- Unggah media ----
+// Berkas dikirim LANGSUNG dari browser ke Supabase Storage lewat signed URL (tidak melewati fungsi
+// serverless, jadi tidak terkena batas body ±4,5 MB). Server hanya menandatangani dan memverifikasi.
 // kind: 'thumbnail' | 'preview' | 'video'. Mengembalikan { url, size, contentType }.
 export async function uploadMedia({ file, slug, kind, onProgress }) {
+  const { data: sign } = await client.post('/api/uploads/sign', {
+    slug,
+    kind,
+    contentType: file.type,
+    size: file.size,
+  })
+
+  // Instans axios terpisah: tanpa baseURL/header JSON milik klien kita. Content-Type multipart
+  // (beserta boundary) diisi browser dari FormData.
   const body = new FormData()
-  // Field teks harus sebelum berkas agar terbaca oleh multer di server.
-  body.append('slug', slug)
-  body.append('kind', kind)
-  body.append('file', file)
-  const { data } = await client.post('/api/uploads', body, {
-    headers: { 'Content-Type': 'multipart/form-data' }, // tanpa ini, default JSON instance merusak FormData
+  body.append('cacheControl', '31536000')
+  body.append('', file)
+  await axios.put(sign.signedUrl, body, {
     onUploadProgress: (e) => e.total && onProgress?.(Math.round((e.loaded / e.total) * 100)),
   })
+
+  // Server memeriksa isi (magic bytes) & ukuran; berkas yang tidak sesuai dihapus di sana.
+  const { data } = await client.post('/api/uploads/confirm', { path: sign.path })
   return data
 }
 

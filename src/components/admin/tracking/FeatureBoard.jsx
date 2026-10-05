@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { CalendarClock, ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react'
 import Avatar from '../../Avatar.jsx'

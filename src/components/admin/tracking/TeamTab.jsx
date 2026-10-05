@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { Crown, Plus, Trash2 } from 'lucide-react'
 import Avatar from '../../Avatar.jsx'

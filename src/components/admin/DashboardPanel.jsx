@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FolderKanban, PauseCircle, Rocket, TrendingUp } from 'lucide-react'
 import PageHeader from './PageHeader.jsx'

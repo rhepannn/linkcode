@@ -1,8 +1,10 @@
+'use client'
+
 import { useRef, useState } from 'react'
 import { Loader2, Trash2, Upload } from 'lucide-react'
 import { uploadMedia } from '../../api/client.js'
 
-// Batas & jenis per kind (selaras dengan backend/lib/storage.js; server tetap memvalidasi ulang).
+// Batas & jenis per kind (selaras dengan src/lib/storage.js; server tetap memvalidasi ulang).
 const KINDS = {
   thumbnail: { accept: 'image/jpeg,image/png,image/webp', maxMB: 8, label: 'JPG, PNG, atau WebP · maks 8 MB' },
   preview: { accept: 'image/jpeg,image/png,image/webp', maxMB: 12, label: 'JPG, PNG, atau WebP · maks 12 MB' },

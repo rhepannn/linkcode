@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Monitor, Smartphone, X } from 'lucide-react'
 import BrowserFrame from './BrowserFrame.jsx'

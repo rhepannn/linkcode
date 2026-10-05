@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useState } from 'react'
 import { Crown, Pencil, Plus, Trash2 } from 'lucide-react'
 import PageHeader from './PageHeader.jsx'

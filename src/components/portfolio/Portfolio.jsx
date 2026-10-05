@@ -1,31 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+'use client'
+
+import { useCallback, useMemo, useState } from 'react'
 import FilterPill from '../FilterPill.jsx'
 import Reveal from '../Reveal.jsx'
 import FeaturedWork from './FeaturedWork.jsx'
 import WorkCard from './WorkCard.jsx'
 import WorkModal from './WorkModal.jsx'
-import { getShowcases } from '../../api/client.js'
 import { SECTORS, SECTOR_ORDER } from '../../utils/sectorConfig.js'
 
 const PAGE_SIZE = 9
 
 // Bagian portofolio: karya unggulan, filter sektor, grid, dan modal pratinjau.
-// Disembunyikan jika data belum ada / API tidak tersedia.
-export default function Portfolio() {
-  const [items, setItems] = useState([])
+// Data datang dari server (Server Component) lewat props; disembunyikan jika kosong.
+export default function Portfolio({ items = [] }) {
   const [filter, setFilter] = useState('all')
   const [showAll, setShowAll] = useState(false)
   const [selected, setSelected] = useState(null)
-
-  useEffect(() => {
-    let mounted = true
-    getShowcases()
-      .then((data) => mounted && setItems(Array.isArray(data) ? data : []))
-      .catch(() => {})
-    return () => {
-      mounted = false
-    }
-  }, [])
 
   const closeModal = useCallback(() => setSelected(null), [])
 
@@ -43,7 +33,6 @@ export default function Portfolio() {
       filter === 'all' ? items.filter((w) => !w.featured) : items.filter((w) => w.sector === filter),
     [items, filter],
   )
-  const visible = showAll ? gridItems : gridItems.slice(0, PAGE_SIZE)
   const sectorCount = SECTOR_ORDER.filter((s) => counts[s] > 0).length
 
   if (items.length === 0) return null
@@ -90,8 +79,10 @@ export default function Portfolio() {
       </Reveal>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((w, i) => (
-          <Reveal key={w.id} delay={(i % 3) * 80}>
+        {/* Semua karya tetap ada di HTML (tautannya bisa dirayapi); yang melebihi PAGE_SIZE disembunyikan
+            dengan CSS sampai "Lihat semua" ditekan. Gambar lazy tidak dimuat selagi disembunyikan. */}
+        {gridItems.map((w, i) => (
+          <Reveal key={w.id} delay={(i % 3) * 80} className={!showAll && i >= PAGE_SIZE ? 'hidden' : ''}>
             <WorkCard work={w} onOpen={setSelected} />
           </Reveal>
         ))}
